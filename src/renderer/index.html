@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Electronic Session Manager</title>
+    <link rel="stylesheet" href="../styles/main.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <h1>🔌 Electronic Session Manager</h1>
+        <p>AWS EC2 Instance Management Tool</p>
+      </header>
+      
+      <main class="app-main">
+        <div class="sidebar">
+          <h2>Instances</h2>
+          <div class="instance-controls">
+            <button id="refresh-instances" class="btn-primary">🔄 Refresh Instances</button>
+          </div>
+          <div id="instance-list">
+            <!-- Instance list will be populated here -->
+          </div>
+        </div>
+        
+        <div class="content">
+          <!-- Tab Navigation -->
+          <div class="tab-navigation">
+            <button class="tab-button active" data-tab="instances">Instances</button>
+            <button class="tab-button" data-tab="console">Console</button>
+          </div>
+          
+          <!-- Tab Content -->
+          <div class="tab-content">
+            <!-- Instances Tab -->
+            <div id="instances-tab" class="tab-panel active">
+              <div id="instance-details">
+                <!-- Instance details will be shown here -->
+                <p>Select an instance to view details</p>
+              </div>
+            </div>
+            
+            <!-- Console Tab -->
+            <div id="console-tab" class="tab-panel">
+              <div class="console-header">
+                <h3>Application Console</h3>
+                <div class="console-controls">
+                  <button id="clear-console" class="btn-secondary">Clear</button>
+                  <button id="export-logs" class="btn-secondary">Export</button>
+                </div>
+              </div>
+              <div id="console-output" class="console-output">
+                <!-- Console output will be displayed here -->
+                <div class="console-entry">
+                  <span class="timestamp">[System]</span>
+                  <span class="message">Console initialized. Ready to display logs.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    
+    <script src="../renderer/renderer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,61 @@
+{
+  "name": "electronic-session-manager",
+  "productName": "Electronic Session Manager",
+  "version": "1.0.0",
+  "description": "A modern Electron-based desktop application for managing AWS EC2 instances through the AWS CLI Session Manager plugin",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linting configured\"",
+    "dev": "NODE_ENV=development electron-forge start",
+    "build": "electron-forge make",
+    "dist": "electron-forge package && electron-forge make"
+  },
+  "keywords": [
+    "electron",
+    "aws",
+    "ec2",
+    "session-manager",
+    "desktop",
+    "management",
+    "cloud"
+  ],
+  "author": {
+    "name": "Eddie Pykosh",
+    "email": "eddie@pykosh.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/electronic-session-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/electronic-session-manager/issues"
+  },
+  "homepage": "https://github.com/yourusername/electronic-session-manager#readme",
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.1",
+    "@electron-forge/maker-deb": "^7.8.1",
+    "@electron-forge/maker-rpm": "^7.8.1",
+    "@electron-forge/maker-squirrel": "^7.8.1",
+    "@electron-forge/maker-zip": "^7.8.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
+    "@electron-forge/plugin-fuses": "^7.8.1",
+    "@electron/fuses": "^1.8.0",
+    "electron": "36.5.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ]
+}
