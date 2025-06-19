@@ -109,6 +109,18 @@ const setupIPCHandlers = () => {
     }
   });
 
+  ipcMain.handle('aws:stop-port-forwarding', async (event, { instanceId, sessionId }) => {
+    try {
+      sendLogToRenderer('info', `Stopping port forwarding for instance: ${instanceId}`);
+      const result = await awsService.stopPortForwarding(instanceId, sessionId);
+      sendLogToRenderer('info', `Port forwarding stopped for instance: ${instanceId}`);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to stop port forwarding: ${error.message}`);
+      throw error;
+    }
+  });
+
   // Configuration operations
   ipcMain.handle('config:get', async () => {
     try {

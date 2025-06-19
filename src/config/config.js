@@ -7,7 +7,7 @@ class Config {
     this.configFile = path.join(this.configPath, 'config.json');
     this.defaultConfig = {
       aws: {
-        region: 'us-east-1',
+        region: 'us-gov-west-1',
         profile: 'default'
       },
       ui: {
@@ -22,8 +22,8 @@ class Config {
         maxSessions: 5
       },
       portForwarding: {
-        defaultLocalPort: 8080,
-        defaultRemotePort: 80
+        defaultLocalPort: 13389,
+        defaultRemotePort: 3389
       }
     };
   }

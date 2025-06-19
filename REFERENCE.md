@@ -57,9 +57,9 @@ electronic-session-manager/
 ### Current Application State
 - **Main Process (`src/main/main.js`):** Enhanced with IPC handlers, service initialization, and log forwarding to renderer
 - **Renderer Process (`src/renderer/index.html`):** Tabbed interface with Instances and Console tabs, **NEW: Refresh Instances button**
-- **Renderer Process (`src/renderer/renderer.js`):** **NEW: Complete EC2 instance loading and display functionality**
+- **Renderer Process (`src/renderer/renderer.js`):** **NEW: Complete EC2 instance loading and display functionality, NEW: Instance details panel implementation**
 - **Preload Script (`src/preload/preload.js`):** Complete API exposure including log message handling
-- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, **NEW: Instance list styling and action buttons**
+- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, **NEW: Instance list styling and action buttons, NEW: Comprehensive instance details panel styling**
 - **AWS Service (`src/services/awsService.js`):** Complete AWS CLI integration with graceful CLI availability handling
 - **Configuration (`src/config/config.js`):** Configuration management with file persistence
 - **Logging (`src/utils/logger.js`):** Structured logging utility with file output support
@@ -145,13 +145,15 @@ electronic-session-manager/
 - [x] **NEW: Add Refresh Instances button and functionality** ✅ **JUST COMPLETED**
 - [x] **NEW: Implement instance list rendering with status indicators** ✅ **JUST COMPLETED**
 - [x] **NEW: Add instance action buttons (Start/Stop/Connect)** ✅ **JUST COMPLETED**
-- [ ] Add instance details display
+- [x] **NEW: Add instance details display** ✅ **JUST COMPLETED**
+- [x] **NEW: Implement comprehensive port forwarding system** ✅ **JUST COMPLETED**
+- [x] **NEW: Add port forwarding session management** ✅ **JUST COMPLETED**
 
 #### Phase 3: Advanced Features (PENDING)
-- [x] Add port forwarding capabilities (service level)
-- [ ] Implement session persistence
+- [x] Add port forwarding capabilities (service level) ✅ **JUST COMPLETED**
+- [x] Implement session persistence ✅ **JUST COMPLETED**
 - [ ] Add configuration management UI
-- [ ] Create port forwarding UI
+- [x] Create port forwarding UI ✅ **JUST COMPLETED**
 
 #### Phase 4: Polish (PENDING)
 - [ ] Error handling and user feedback
@@ -168,6 +170,8 @@ electronic-session-manager/
 - **Configuration:** Persistent configuration management ✅
 - **Logging:** Structured logging with file output and console display ✅
 - **Console System:** Real-time log viewing with export capabilities ✅
+- **Session Management:** Port forwarding session tracking and process management ✅
+- **Process Management:** Interactive AWS CLI session handling with proper cleanup ✅
 
 ### Dependencies to Add (FUTURE)
 - **AWS SDK:** For programmatic AWS access (optional alternative to CLI)
@@ -197,6 +201,44 @@ electronic-session-manager/
 - **Interactive UI:** Click to select instances, hover effects, and visual feedback
 - **Error Handling:** Graceful handling of AWS CLI errors and network issues
 - **Console Integration:** All operations logged to the console tab for debugging
+
+### Instance Details Panel ✅ **NEWLY IMPLEMENTED**
+- **Click-to-View Details:** Click on any instance in the sidebar to display comprehensive details on the right
+- **Comprehensive Information Display:** Shows all available instance data including:
+  - **Status & Configuration:** Instance status, type, platform, and launch time
+  - **Network Information:** Public/private IPs, availability zone, VPC, and subnet IDs
+  - **Tags Section:** All instance tags displayed in organized format
+  - **Action Buttons:** Context-aware actions (Start/Stop/Connect) based on instance state
+- **Beautiful UI Design:** Modern card-based layout with organized sections
+- **Responsive Design:** Adapts to different screen sizes
+- **Visual Status Indicators:** Color-coded status values matching the sidebar
+- **Professional Styling:** Clean, organized layout with proper spacing and typography
+- **Real-time Updates:** Details panel updates when instances are refreshed
+
+### Port Forwarding System ✅ **NEWLY IMPLEMENTED**
+- **Three Connection Options:**
+  - **🖥️ Connect via RDP:** Forwards remote port 3389 to local port 13389
+  - **💻 Connect via SSH:** Forwards remote port 22 to local port 2222
+  - **🔧 Connect using Custom ports:** User-defined local and remote ports
+- **Custom Port Dialog:** Interactive form for specifying custom port mappings
+- **Input Validation:** Ensures valid port ranges (local: 1024-65535, remote: 1-65535)
+- **Success Popups:** Beautiful popup notifications showing connection details and instructions
+- **Connection Instructions:** Clear guidance on how to connect using the forwarded ports
+- **Persistent Popups:** Success popups stay open until user clicks OK (no auto-close)
+- **Error Handling:** Comprehensive error messages for common issues (SSM agent, permissions, etc.)
+- **SSM Agent Validation:** Checks if instance has Session Manager agent before attempting connection
+- **Real-time Logging:** All port forwarding operations logged to console tab
+
+### Port Forwarding Session Management ✅ **NEWLY IMPLEMENTED**
+- **Session Tracking:** Active sessions tracked by instanceId with metadata (sessionId, connectionType, ports)
+- **Stop Port Forwarding:** Red "⏹️ Stop Port Forwarding" button in instance details panel
+- **Dynamic UI:** Stop button appears/disappears based on active session status
+- **Session Termination:** Graceful process termination with SIGTERM/SIGKILL fallback
+- **Backend Process Management:** Proper cleanup of AWS CLI port forwarding processes
+- **Instance Details Integration:** Stop button integrated into Actions section of instance details
+- **Auto-refresh:** Instance details update automatically when sessions start/stop
+- **Session Persistence:** Sessions tracked across UI interactions until manually stopped
+- **Visual Feedback:** Clear success/error messages for session management operations
 
 ### Console Tab Implementation
 - **Real-time Log Display:** Shows logs from both main and renderer processes
@@ -237,3 +279,13 @@ electronic-session-manager/
 - **Status:** Foundation complete with console functionality, ready for UI implementation
 - **Next Steps:** Implement instance list rendering and session management UI
 - **Recent Fixes:** Import path corrections, AWS CLI handling, console tab implementation
+
+### Port Forwarding Session Management ✅ **JUST COMPLETED**
+- **Moved Stop Button:** Relocated from popup to instance details panel for better accessibility
+- **Session Tracking:** Implemented comprehensive session tracking in both renderer and main processes
+- **Dynamic UI Updates:** Instance details automatically refresh to show/hide stop button
+- **Process Management:** Proper handling of interactive AWS CLI sessions with graceful termination
+- **User Experience:** Persistent popups that stay open until user dismisses them
+- **Visual Design:** Red gradient styling for stop button to indicate destructive action
+- **Error Handling:** Comprehensive error handling for session management operations
+- **Console Integration:** All session operations logged to console tab for debugging

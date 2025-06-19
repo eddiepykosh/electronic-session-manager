@@ -3,6 +3,8 @@
 
 class ElectronicSessionManager {
   constructor() {
+    this.instances = []; // Store instances data
+    this.activeSessions = new Map(); // Track active port forwarding sessions
     this.initializeApp();
   }
 
@@ -220,6 +222,9 @@ class ElectronicSessionManager {
         console.log('Instances loaded:', instances);
         this.addConsoleEntry('System', `Loaded ${instances.length} EC2 instances`, 'info');
         
+        // Store instances data for later use
+        this.instances = instances;
+        
         // Log instance details for debugging
         instances.forEach((instance, index) => {
           const nameTag = instance.tags?.find(tag => tag.Key === 'Name');
@@ -307,7 +312,24 @@ class ElectronicSessionManager {
     
     if (status === 'running') {
       buttons += `<button class="btn-action" onclick="app.stopInstance('${instanceId}')">⏹️ Stop</button>`;
-      buttons += `<button class="btn-action" onclick="app.startSession('${instanceId}')">🔗 Connect</button>`;
+    } else if (status === 'stopped') {
+      buttons += `<button class="btn-action" onclick="app.startInstance('${instanceId}')">▶️ Start</button>`;
+    }
+    
+    return buttons;
+  }
+
+  getDetailsActionButtons(instance) {
+    const status = instance.state?.toLowerCase();
+    const instanceId = instance.id;
+    
+    let buttons = '';
+    
+    if (status === 'running') {
+      buttons += `<button class="btn-action" onclick="app.stopInstance('${instanceId}')">⏹️ Stop</button>`;
+      buttons += `<button class="btn-action btn-connect" onclick="app.connectViaRDP('${instanceId}')">🖥️ Connect via RDP</button>`;
+      buttons += `<button class="btn-action btn-connect" onclick="app.connectViaSSH('${instanceId}')">💻 Connect via SSH</button>`;
+      buttons += `<button class="btn-action btn-connect" onclick="app.connectViaCustom('${instanceId}')">🔧 Connect using Custom ports</button>`;
     } else if (status === 'stopped') {
       buttons += `<button class="btn-action" onclick="app.startInstance('${instanceId}')">▶️ Start</button>`;
     }
@@ -338,8 +360,116 @@ class ElectronicSessionManager {
   }
 
   showInstanceDetails(instanceId) {
-    // TODO: Implement instance details display
+    // Find the instance data
+    const instance = this.instances.find(inst => inst.id === instanceId);
+    
+    if (!instance) {
+      console.error('Instance not found:', instanceId);
+      return;
+    }
+
+    // Get instance name from tags
+    const nameTag = instance.tags?.find(tag => tag.Key === 'Name');
+    const instanceName = nameTag?.Value || instance.id;
+
+    // Format launch time
+    const launchTime = instance.launchTime ? new Date(instance.launchTime).toLocaleString() : 'N/A';
+
+    // Get status icon
+    const statusIcon = this.getStatusIcon(instance.state);
+
+    // Create detailed HTML
+    const detailsHtml = `
+      <div class="instance-details-panel">
+        <div class="instance-details-header">
+          <h2>${instanceName}</h2>
+          <span class="instance-id">${instance.id}</span>
+        </div>
+        
+        <div class="instance-details-content">
+          <div class="detail-section">
+            <h3>Actions</h3>
+            <div class="action-buttons">
+              ${this.getDetailsActionButtons(instance)}
+              ${this.getPortForwardingActions(instance.id)}
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Status & Configuration</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value status-${instance.state?.toLowerCase()}">
+                  ${statusIcon} ${instance.state || 'Unknown'}
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Instance Type:</span>
+                <span class="detail-value">${instance.type || 'Unknown'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Platform:</span>
+                <span class="detail-value">${instance.platform || 'linux'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Launch Time:</span>
+                <span class="detail-value">${launchTime}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Network Information</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Public IP:</span>
+                <span class="detail-value">${instance.publicIp || 'N/A'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Private IP:</span>
+                <span class="detail-value">${instance.privateIp || 'N/A'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Availability Zone:</span>
+                <span class="detail-value">${instance.availabilityZone || 'Unknown'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">VPC ID:</span>
+                <span class="detail-value">${instance.vpcId || 'N/A'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Subnet ID:</span>
+                <span class="detail-value">${instance.subnetId || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+
+          ${instance.tags && instance.tags.length > 0 ? `
+          <div class="detail-section">
+            <h3>Tags</h3>
+            <div class="tags-container">
+              ${instance.tags.map(tag => `
+                <div class="tag-item">
+                  <span class="tag-key">${tag.Key}:</span>
+                  <span class="tag-value">${tag.Value}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    // Update the instance details panel
+    const detailsPanel = document.getElementById('instance-details');
+    if (detailsPanel) {
+      detailsPanel.innerHTML = detailsHtml;
+    }
+
     console.log('Showing details for instance:', instanceId);
+    this.addConsoleEntry('System', `Displaying details for instance: ${instanceName} (${instanceId})`, 'info');
   }
 
   async startInstance(instanceId) {
@@ -382,20 +512,232 @@ class ElectronicSessionManager {
     }
   }
 
-  async startSession(instanceId) {
+  async connectViaRDP(instanceId) {
     try {
-      console.log('Starting session for instance:', instanceId);
-      this.addConsoleEntry('System', `Starting session for instance: ${instanceId}`, 'info');
+      console.log('Starting RDP connection for instance:', instanceId);
+      this.addConsoleEntry('System', `Starting RDP connection for instance: ${instanceId}`, 'info');
       
-      if (window.electronAPI && window.electronAPI.startSession) {
-        await window.electronAPI.startSession(instanceId);
-        this.addConsoleEntry('System', `Session started for instance ${instanceId}`, 'info');
-        this.showSuccess(`Session started for instance ${instanceId}`);
+      if (window.electronAPI && window.electronAPI.startPortForwarding) {
+        const result = await window.electronAPI.startPortForwarding(instanceId, 13389, 3389);
+        this.addConsoleEntry('System', `RDP connection started for instance ${instanceId}`, 'info');
+        
+        // Track the active session
+        this.activeSessions.set(instanceId, {
+          sessionId: result.sessionId,
+          connectionType: 'RDP',
+          localPort: 13389,
+          remotePort: 3389
+        });
+        
+        this.showPortForwardingSuccess('RDP', instanceId, 13389, 3389, result.sessionId);
+        
+        // Refresh instance details to show stop button
+        this.refreshInstanceDetails(instanceId);
       }
     } catch (error) {
-      console.error('Error starting session:', error);
-      this.addConsoleEntry('ERROR', `Failed to start session for instance ${instanceId}: ${error.message}`, 'error');
-      this.showError(`Failed to start session: ${error.message}`);
+      console.error('Error starting RDP connection:', error);
+      this.addConsoleEntry('ERROR', `Failed to start RDP connection for instance ${instanceId}: ${error.message}`, 'error');
+      this.showError(`Failed to start RDP connection: ${error.message}`);
+    }
+  }
+
+  async connectViaSSH(instanceId) {
+    try {
+      console.log('Starting SSH connection for instance:', instanceId);
+      this.addConsoleEntry('System', `Starting SSH connection for instance: ${instanceId}`, 'info');
+      
+      if (window.electronAPI && window.electronAPI.startPortForwarding) {
+        const result = await window.electronAPI.startPortForwarding(instanceId, 2222, 22);
+        this.addConsoleEntry('System', `SSH connection started for instance ${instanceId}`, 'info');
+        
+        // Track the active session
+        this.activeSessions.set(instanceId, {
+          sessionId: result.sessionId,
+          connectionType: 'SSH',
+          localPort: 2222,
+          remotePort: 22
+        });
+        
+        this.showPortForwardingSuccess('SSH', instanceId, 2222, 22, result.sessionId);
+        
+        // Refresh instance details to show stop button
+        this.refreshInstanceDetails(instanceId);
+      }
+    } catch (error) {
+      console.error('Error starting SSH connection:', error);
+      this.addConsoleEntry('ERROR', `Failed to start SSH connection for instance ${instanceId}: ${error.message}`, 'error');
+      this.showError(`Failed to start SSH connection: ${error.message}`);
+    }
+  }
+
+  async connectViaCustom(instanceId) {
+    // Create custom port input dialog
+    const customPortDialog = document.createElement('div');
+    customPortDialog.className = 'custom-port-dialog';
+    customPortDialog.innerHTML = `
+      <div class="custom-port-content">
+        <h3>Custom Port Forwarding</h3>
+        <p>Enter the ports for port forwarding:</p>
+        <div class="port-inputs">
+          <div class="port-input-group">
+            <label for="local-port">Local Port:</label>
+            <input type="number" id="local-port" placeholder="e.g., 8080" min="1024" max="65535" value="8080">
+          </div>
+          <div class="port-input-group">
+            <label for="remote-port">Remote Port:</label>
+            <input type="number" id="remote-port" placeholder="e.g., 80" min="1" max="65535" value="80">
+          </div>
+        </div>
+        <div class="dialog-buttons">
+          <button class="btn-secondary" onclick="app.closeCustomPortDialog()">Cancel</button>
+          <button class="btn-primary" onclick="app.startCustomPortForwarding('${instanceId}')">Start Connection</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(customPortDialog);
+    
+    // Focus on first input
+    setTimeout(() => {
+      const localPortInput = document.getElementById('local-port');
+      if (localPortInput) localPortInput.focus();
+    }, 100);
+  }
+
+  async startCustomPortForwarding(instanceId) {
+    const localPort = parseInt(document.getElementById('local-port').value);
+    const remotePort = parseInt(document.getElementById('remote-port').value);
+    
+    // Validate inputs
+    if (!localPort || !remotePort) {
+      this.showError('Please enter valid port numbers');
+      return;
+    }
+    
+    if (localPort < 1024 || localPort > 65535) {
+      this.showError('Local port must be between 1024 and 65535');
+      return;
+    }
+    
+    if (remotePort < 1 || remotePort > 65535) {
+      this.showError('Remote port must be between 1 and 65535');
+      return;
+    }
+    
+    try {
+      console.log('Starting custom port forwarding for instance:', instanceId);
+      this.addConsoleEntry('System', `Starting custom port forwarding for instance: ${instanceId} (${localPort} -> ${remotePort})`, 'info');
+      
+      if (window.electronAPI && window.electronAPI.startPortForwarding) {
+        const result = await window.electronAPI.startPortForwarding(instanceId, localPort, remotePort);
+        this.addConsoleEntry('System', `Custom port forwarding started for instance ${instanceId}`, 'info');
+        
+        // Track the active session
+        this.activeSessions.set(instanceId, {
+          sessionId: result.sessionId,
+          connectionType: 'Custom',
+          localPort: localPort,
+          remotePort: remotePort
+        });
+        
+        this.showPortForwardingSuccess('Custom', instanceId, localPort, remotePort, result.sessionId);
+        this.closeCustomPortDialog();
+        
+        // Refresh instance details to show stop button
+        this.refreshInstanceDetails(instanceId);
+      }
+    } catch (error) {
+      console.error('Error starting custom port forwarding:', error);
+      this.addConsoleEntry('ERROR', `Failed to start custom port forwarding for instance ${instanceId}: ${error.message}`, 'error');
+      this.showError(`Failed to start custom port forwarding: ${error.message}`);
+    }
+  }
+
+  async stopPortForwarding(instanceId) {
+    const session = this.activeSessions.get(instanceId);
+    if (!session) {
+      this.showError('No active port forwarding session found for this instance');
+      return;
+    }
+    
+    try {
+      console.log('Stopping port forwarding for instance:', instanceId, 'session:', session.sessionId);
+      this.addConsoleEntry('System', `Stopping port forwarding for instance: ${instanceId}`, 'info');
+      
+      if (window.electronAPI && window.electronAPI.stopPortForwarding) {
+        const result = await window.electronAPI.stopPortForwarding(instanceId, session.sessionId);
+        this.addConsoleEntry('System', `Port forwarding stopped for instance ${instanceId}`, 'info');
+        
+        // Remove from active sessions
+        this.activeSessions.delete(instanceId);
+        
+        // Show success message
+        this.showSuccess(`Port forwarding stopped for instance ${instanceId}`);
+        
+        // Refresh instance details to remove stop button
+        this.refreshInstanceDetails(instanceId);
+      }
+    } catch (error) {
+      console.error('Error stopping port forwarding:', error);
+      this.addConsoleEntry('ERROR', `Failed to stop port forwarding for instance ${instanceId}: ${error.message}`, 'error');
+      this.showError(`Failed to stop port forwarding: ${error.message}`);
+    }
+  }
+
+  closeCustomPortDialog() {
+    const dialog = document.querySelector('.custom-port-dialog');
+    if (dialog) {
+      dialog.remove();
+    }
+  }
+
+  showPortForwardingSuccess(connectionType, instanceId, localPort, remotePort, sessionId) {
+    // Create success popup
+    const successPopup = document.createElement('div');
+    successPopup.className = 'success-popup';
+    
+    let connectionInstructions = '';
+    if (connectionType === 'RDP') {
+      connectionInstructions = `Connect to: localhost:${localPort}`;
+    } else if (connectionType === 'SSH') {
+      connectionInstructions = `SSH to: localhost -p ${localPort}`;
+    } else {
+      connectionInstructions = `Connect to: localhost:${localPort}`;
+    }
+    
+    successPopup.innerHTML = `
+      <div class="success-content">
+        <div class="success-header">
+          <span class="success-icon">✅</span>
+          <h3>Port Forwarding Started</h3>
+        </div>
+        <div class="success-details">
+          <p><strong>Instance:</strong> ${instanceId}</p>
+          <p><strong>Connection Type:</strong> ${connectionType}</p>
+          <p><strong>Port Mapping:</strong> localhost:${localPort} → remote:${remotePort}</p>
+          ${sessionId ? `<p><strong>Session ID:</strong> <code>${sessionId}</code></p>` : ''}
+          <div class="connection-instructions">
+            <p><strong>To connect:</strong></p>
+            <code>${connectionInstructions}</code>
+          </div>
+          <div class="session-info">
+            <p><strong>Status:</strong> <span class="status-running">🟢 Active</span></p>
+            <p class="session-note">The port forwarding session is now active. You can connect using the instructions above.</p>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="app.closeSuccessPopup()">OK</button>
+      </div>
+    `;
+    
+    document.body.appendChild(successPopup);
+    
+    // Popup stays open until user clicks OK (no auto-close)
+  }
+
+  closeSuccessPopup() {
+    const popup = document.querySelector('.success-popup');
+    if (popup) {
+      popup.remove();
     }
   }
 
@@ -407,6 +749,22 @@ class ElectronicSessionManager {
   showSuccess(message) {
     // TODO: Implement success display
     console.log(message);
+  }
+
+  refreshInstanceDetails(instanceId) {
+    // Re-display the instance details to show/hide the stop button
+    this.showInstanceDetails(instanceId);
+  }
+
+  getPortForwardingActions(instanceId) {
+    const session = this.activeSessions.get(instanceId);
+    if (session) {
+      return `
+        <button class="btn-action btn-stop" onclick="app.stopPortForwarding('${instanceId}')">⏹️ Stop Port Forwarding</button>
+      `;
+    } else {
+      return '';
+    }
   }
 }
 

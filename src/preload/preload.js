@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startSession: (instanceId) => ipcRenderer.invoke('aws:start-session', instanceId),
   startPortForwarding: (instanceId, localPort, remotePort) => 
     ipcRenderer.invoke('aws:start-port-forwarding', { instanceId, localPort, remotePort }),
+  stopPortForwarding: (instanceId, sessionId) => 
+    ipcRenderer.invoke('aws:stop-port-forwarding', { instanceId, sessionId }),
   
   // Configuration operations
   getConfig: () => ipcRenderer.invoke('config:get'),
