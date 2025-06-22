@@ -28,15 +28,109 @@ body {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.app-header h1 {
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left h1 {
   font-size: 1.8rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
 
-.app-header p {
+.header-left p {
   opacity: 0.9;
   font-size: 0.9rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.profile-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.profile-selector label {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.profile-dropdown {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 150px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.profile-dropdown:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.profile-dropdown:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.profile-dropdown option {
+  background: #333;
+  color: white;
+}
+
+.profile-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffd700;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.valid {
+  background: #4caf50;
+  animation: none;
+}
+
+.status-indicator.invalid {
+  background: #f44336;
+  animation: none;
+}
+
+.status-indicator.loading {
+  background: #ffd700;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.status-text {
+  font-weight: 500;
 }
 
 /* Main content area */
@@ -916,4 +1010,25 @@ body {
 
 .session-info.stopped .session-note {
   color: #721c24;
+}
+
+/* Responsive design for header */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .header-right {
+    align-self: stretch;
+  }
+  
+  .profile-selector {
+    align-items: flex-start;
+  }
+  
+  .profile-dropdown {
+    min-width: 200px;
+  }
 }

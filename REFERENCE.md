@@ -100,14 +100,18 @@ electronic-session-manager/
 
 #### AWS CLI Integration ✅ COMPLETED
 - **Prerequisites:** AWS CLI and Session Manager plugin must be installed
-- **Authentication:** AWS credentials configuration
+- **Authentication:** AWS credentials configuration with profile support ✅
+- **Profile Management:** Support for multiple AWS profiles including SSO profiles ✅
 - **Commands Integrated:**
   - `aws ec2 describe-instances` - List instances ✅
   - `aws ec2 start-instances` - Start instances ✅
   - `aws ec2 stop-instances` - Stop instances ✅
   - `aws ssm start-session` - Start Session Manager session ✅
   - `aws ssm describe-instance-information` - Get instance info ✅
+  - `aws sts get-caller-identity` - Validate profile credentials ✅
+  - `aws configure list-profiles` - List available profiles ✅
 - **Graceful CLI Handling:** App starts even if AWS CLI is not available ✅
+- **Profile Switching:** Seamless switching between different AWS accounts ✅
 
 #### UI/UX Requirements
 - **Tabbed Interface:** Instances and Console tabs ✅
@@ -229,16 +233,38 @@ electronic-session-manager/
 - **SSM Agent Validation:** Checks if instance has Session Manager agent before attempting connection
 - **Real-time Logging:** All port forwarding operations logged to console tab
 
-### Port Forwarding Session Management ✅ **NEWLY IMPLEMENTED**
-- **Session Tracking:** Active sessions tracked by instanceId with metadata (sessionId, connectionType, ports)
-- **Stop Port Forwarding:** Red "⏹️ Stop Port Forwarding" button in instance details panel
-- **Dynamic UI:** Stop button appears/disappears based on active session status
-- **Session Termination:** Graceful process termination with SIGTERM/SIGKILL fallback
-- **Backend Process Management:** Proper cleanup of AWS CLI port forwarding processes
-- **Instance Details Integration:** Stop button integrated into Actions section of instance details
-- **Auto-refresh:** Instance details update automatically when sessions start/stop
-- **Session Persistence:** Sessions tracked across UI interactions until manually stopped
-- **Visual Feedback:** Clear success/error messages for session management operations
+### Port Forwarding Session Management ✅ **JUST COMPLETED**
+- **Moved Stop Button:** Relocated from popup to instance details panel for better accessibility
+- **Session Tracking:** Implemented comprehensive session tracking in both renderer and main processes
+- **Dynamic UI Updates:** Instance details automatically refresh to show/hide stop button
+- **Process Management:** Proper handling of interactive AWS CLI sessions with graceful termination
+- **User Experience:** Persistent popups that stay open until user dismisses them
+- **Visual Design:** Red gradient styling for stop button to indicate destructive action
+- **Error Handling:** Comprehensive error handling for session management operations
+- **Console Integration:** All session operations logged to console tab for debugging
+
+### AWS SSO Profile Support ✅ **NEWLY IMPLEMENTED**
+- **Profile Management:** Complete AWS profile support including SSO profiles
+- **Profile Detection:** Automatic detection of available profiles from AWS credentials and config files
+- **Profile Validation:** Real-time validation of profile credentials using AWS STS
+- **Profile Switching:** Seamless switching between different AWS profiles
+- **SSO Integration:** Full support for AWS SSO profiles configured in `~/.aws/config`
+- **Profile Status Display:** Visual status indicator showing profile validity and account information
+- **Header Integration:** Profile selector integrated into application header for easy access
+- **Cross-Platform Support:** Works on Windows, macOS, and Linux with proper path handling
+- **Error Handling:** Graceful handling of invalid profiles and authentication failures
+- **Console Logging:** All profile operations logged to console for debugging
+- **UI Components:**
+  - **Profile Dropdown:** Dropdown selector showing all available profiles
+  - **Status Indicator:** Color-coded status dot (green=valid, red=invalid, yellow=loading)
+  - **Account Display:** Shows account ID for valid profiles
+  - **Responsive Design:** Profile selector adapts to different screen sizes
+- **Backend Features:**
+  - **Profile Discovery:** Reads from `~/.aws/credentials` and `~/.aws/config` files
+  - **CLI Integration:** Uses `aws configure list-profiles` for comprehensive profile detection
+  - **Command Building:** All AWS CLI commands automatically include profile parameter
+  - **Session Persistence:** Profile selection persists across application sessions
+  - **Validation System:** Tests profile validity before allowing operations
 
 ### Console Tab Implementation
 - **Improved Readability:** Reduced spacing between log entries for a more compact and readable view.
@@ -275,11 +301,11 @@ electronic-session-manager/
 - Real-time console monitoring ✅ **NEW**
 
 ## Current Status
-- **Date:** Console tab implementation and bug fixes completed
+- **Date:** AWS SSO profile support implementation completed
 - **Version:** 1.0.0
-- **Status:** Foundation complete with console functionality, ready for UI implementation
-- **Next Steps:** Implement instance list rendering and session management UI
-- **Recent Fixes:** Import path corrections, AWS CLI handling, console tab implementation
+- **Status:** Foundation complete with console functionality and AWS SSO profile support, ready for advanced features
+- **Next Steps:** Implement configuration management UI and advanced session features
+- **Recent Fixes:** Import path corrections, AWS CLI handling, console tab implementation, AWS SSO profile integration
 
 ### Port Forwarding Session Management ✅ **JUST COMPLETED**
 - **Moved Stop Button:** Relocated from popup to instance details panel for better accessibility

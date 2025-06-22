@@ -1,5 +1,7 @@
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const path = require('path');
+const fs = require('fs').promises;
 
 const execAsync = promisify(exec);
 
@@ -9,6 +11,12 @@ class AWSService {
     this.awsCliAvailable = false;
     // Track active port forwarding sessions
     this.activeSessions = new Map();
+    // Current active profile
+    this.currentProfile = 'default';
+    // AWS credentials file path
+    this.credentialsPath = path.join(process.env.HOME || process.env.USERPROFILE, '.aws', 'credentials');
+    // AWS config file path
+    this.configPath = path.join(process.env.HOME || process.env.USERPROFILE, '.aws', 'config');
   }
 
   async checkAWSCLI() {
@@ -33,11 +41,124 @@ class AWSService {
     }
   }
 
+  // Get the current active profile
+  getCurrentProfile() {
+    return this.currentProfile;
+  }
+
+  // Set the active profile
+  setCurrentProfile(profile) {
+    this.currentProfile = profile;
+    console.log(`Active AWS profile set to: ${profile}`);
+  }
+
+  // Build AWS CLI command with profile
+  buildAWSCommand(baseCommand) {
+    if (this.currentProfile && this.currentProfile !== 'default') {
+      return `${baseCommand} --profile ${this.currentProfile}`;
+    }
+    return baseCommand;
+  }
+
+  // List available AWS profiles
+  async getAvailableProfiles() {
+    try {
+      await this.ensureAWSCLI();
+      
+      const profiles = new Set(['default']); // Always include default
+      
+      // Try to read from credentials file
+      try {
+        const credentialsContent = await fs.readFile(this.credentialsPath, 'utf8');
+        const profileMatches = credentialsContent.match(/\[([^\]]+)\]/g);
+        if (profileMatches) {
+          profileMatches.forEach(match => {
+            const profileName = match.slice(1, -1); // Remove brackets
+            if (profileName !== 'default') {
+              profiles.add(profileName);
+            }
+          });
+        }
+      } catch (error) {
+        console.log('No AWS credentials file found or unable to read');
+      }
+
+      // Try to read from config file (for SSO profiles)
+      try {
+        const configContent = await fs.readFile(this.configPath, 'utf8');
+        const profileMatches = configContent.match(/\[profile ([^\]]+)\]/g);
+        if (profileMatches) {
+          profileMatches.forEach(match => {
+            const profileName = match.slice(9, -1); // Remove '[profile ' and ']'
+            profiles.add(profileName);
+          });
+        }
+      } catch (error) {
+        console.log('No AWS config file found or unable to read');
+      }
+
+      // Also try to get profiles from AWS CLI
+      try {
+        const { stdout } = await execAsync('aws configure list-profiles');
+        const cliProfiles = stdout.trim().split('\n').filter(p => p.trim());
+        cliProfiles.forEach(profile => profiles.add(profile));
+      } catch (error) {
+        console.log('Unable to list profiles via AWS CLI, using file-based detection');
+      }
+
+      return Array.from(profiles).sort();
+    } catch (error) {
+      console.error('Error getting available profiles:', error);
+      return ['default']; // Fallback to default only
+    }
+  }
+
+  // Test if a profile is valid by trying to get caller identity
+  async testProfile(profile) {
+    try {
+      await this.ensureAWSCLI();
+      const command = profile && profile !== 'default' 
+        ? `aws sts get-caller-identity --profile ${profile} --output json`
+        : 'aws sts get-caller-identity --output json';
+      const { stdout } = await execAsync(command);
+      const data = JSON.parse(stdout);
+      return {
+        valid: true,
+        accountId: data.Account,
+        userId: data.UserId,
+        arn: data.Arn
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Get current profile information
+  async getCurrentProfileInfo() {
+    try {
+      const profileInfo = await this.testProfile(this.currentProfile);
+      return {
+        profile: this.currentProfile,
+        ...profileInfo
+      };
+    } catch (error) {
+      return {
+        profile: this.currentProfile,
+        valid: false,
+        error: error.message
+      };
+    }
+  }
+
   async getInstances() {
     try {
-      console.log('Attempting to get EC2 instances...')
+      console.log(`Attempting to get EC2 instances using profile: ${this.currentProfile}...`)
       await this.ensureAWSCLI();
-      const { stdout } = await execAsync('aws ec2 describe-instances --output json');
+      const command = this.buildAWSCommand('aws ec2 describe-instances --output json');
+      const { stdout } = await execAsync(command);
       const data = JSON.parse(stdout);
       
       const instances = [];
@@ -69,7 +190,8 @@ class AWSService {
   async startInstance(instanceId) {
     try {
       await this.ensureAWSCLI();
-      const { stdout } = await execAsync(`aws ec2 start-instances --instance-ids ${instanceId} --output json`);
+      const command = this.buildAWSCommand(`aws ec2 start-instances --instance-ids ${instanceId} --output json`);
+      const { stdout } = await execAsync(command);
       const data = JSON.parse(stdout);
       
       if (data.StartingInstances && data.StartingInstances.length > 0) {
@@ -91,7 +213,8 @@ class AWSService {
   async stopInstance(instanceId) {
     try {
       await this.ensureAWSCLI();
-      const { stdout } = await execAsync(`aws ec2 stop-instances --instance-ids ${instanceId} --output json`);
+      const command = this.buildAWSCommand(`aws ec2 stop-instances --instance-ids ${instanceId} --output json`);
+      const { stdout } = await execAsync(command);
       const data = JSON.parse(stdout);
       
       if (data.StoppingInstances && data.StoppingInstances.length > 0) {
@@ -114,7 +237,7 @@ class AWSService {
     try {
       await this.ensureAWSCLI();
       // This will start an interactive session
-      const command = `aws ssm start-session --target ${instanceId}`;
+      const command = this.buildAWSCommand(`aws ssm start-session --target ${instanceId}`);
       console.log('Starting session with command:', command);
       
       // For now, we'll just return success - actual session handling will be implemented later
@@ -144,7 +267,8 @@ class AWSService {
       // Build the port forwarding command with correct parameter format
       const parameters = `portNumber=${remotePort},localPortNumber=${localPort}`;
       
-      const command = `aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSession --parameters "${parameters}"`;
+      const baseCommand = `aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSession --parameters "${parameters}"`;
+      const command = this.buildAWSCommand(baseCommand);
       console.log('Starting port forwarding with command:', command);
       
       // For port forwarding, we need to handle this differently since it's an interactive session
@@ -152,12 +276,19 @@ class AWSService {
       const { spawn } = require('child_process');
       
       return new Promise((resolve, reject) => {
-        const child = spawn('aws', [
+        const args = [
           'ssm', 'start-session',
           '--target', instanceId,
           '--document-name', 'AWS-StartPortForwardingSession',
           '--parameters', parameters
-        ], {
+        ];
+        
+        // Add profile if not default
+        if (this.currentProfile && this.currentProfile !== 'default') {
+          args.push('--profile', this.currentProfile);
+        }
+        
+        const child = spawn('aws', args, {
           stdio: ['pipe', 'pipe', 'pipe']
         });
         
@@ -203,45 +334,41 @@ class AWSService {
         
         child.stderr.on('data', (data) => {
           const errorChunk = data.toString();
-          console.log('Port forwarding stderr:', errorChunk);
+          console.error('Port forwarding error:', errorChunk);
           
-          // Check for common errors
-          if (errorChunk.includes('TargetNotConnected')) {
-            child.kill();
-            reject(new Error(`Instance ${instanceId} is not connected to Session Manager. Make sure the instance is running and has the SSM agent installed.`));
-          } else if (errorChunk.includes('TargetOffline')) {
-            child.kill();
-            reject(new Error(`Instance ${instanceId} is offline. Make sure the instance is running.`));
+          // Check for specific error conditions
+          if (errorChunk.includes('SessionManagerPlugin is not found')) {
+            reject(new Error('Session Manager plugin is not installed. Please install the AWS Session Manager plugin.'));
           } else if (errorChunk.includes('AccessDenied')) {
-            child.kill();
-            reject(new Error(`Access denied. Make sure you have the necessary IAM permissions for Session Manager.`));
+            reject(new Error('Access denied. Please check your AWS permissions and ensure the instance is running.'));
+          } else if (errorChunk.includes('TargetNotConnected')) {
+            reject(new Error('Instance is not connected to Session Manager. Please ensure the instance is running and has the SSM agent installed.'));
           }
         });
         
         child.on('error', (error) => {
           console.error('Port forwarding process error:', error);
-          reject(new Error(`Failed to start port forwarding: ${error.message}`));
+          reject(new Error(`Port forwarding process error: ${error.message}`));
         });
         
         child.on('close', (code) => {
-          console.log('Port forwarding process closed with code:', code);
+          console.log(`Port forwarding process closed with code: ${code}`);
           if (code !== 0 && !sessionId) {
-            reject(new Error(`Port forwarding process exited with code ${code}`));
+            reject(new Error(`Port forwarding process exited with code: ${code}`));
           }
         });
         
-        // Set a timeout in case the session doesn't start properly
+        // Timeout after 30 seconds
         setTimeout(() => {
           if (!sessionId) {
             child.kill();
-            reject(new Error('Port forwarding session failed to start within timeout period'));
+            reject(new Error('Port forwarding session timed out'));
           }
-        }, 10000);
+        }, 30000);
       });
-      
     } catch (error) {
       console.error('Error starting port forwarding:', error);
-      throw error;
+      throw new Error(`Failed to start port forwarding: ${error.message}`);
     }
   }
 
@@ -299,7 +426,8 @@ class AWSService {
   async getInstanceInformation() {
     try {
       await this.ensureAWSCLI();
-      const { stdout } = await execAsync('aws ssm describe-instance-information --output json');
+      const command = this.buildAWSCommand('aws ssm describe-instance-information --output json');
+      const { stdout } = await execAsync(command);
       const data = JSON.parse(stdout);
       return data.InstanceInformationList || [];
     } catch (error) {

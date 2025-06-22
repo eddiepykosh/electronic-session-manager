@@ -8,8 +8,24 @@
   <body>
     <div id="app">
       <header class="app-header">
-        <h1>🔌 Electronic Session Manager</h1>
-        <p>AWS EC2 Instance Management Tool</p>
+        <div class="header-content">
+          <div class="header-left">
+            <h1>🔌 Electronic Session Manager</h1>
+            <p>AWS EC2 Instance Management Tool</p>
+          </div>
+          <div class="header-right">
+            <div class="profile-selector">
+              <label for="profile-select">AWS Profile:</label>
+              <select id="profile-select" class="profile-dropdown">
+                <option value="">Loading profiles...</option>
+              </select>
+              <div id="profile-status" class="profile-status">
+                <span class="status-indicator"></span>
+                <span class="status-text">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
       
       <main class="app-main">

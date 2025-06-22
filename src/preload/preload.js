@@ -18,6 +18,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopPortForwarding: (instanceId, sessionId) => 
     ipcRenderer.invoke('aws:stop-port-forwarding', { instanceId, sessionId }),
   
+  // AWS Profile operations
+  getAvailableProfiles: () => ipcRenderer.invoke('aws:get-profiles'),
+  getCurrentProfileInfo: () => ipcRenderer.invoke('aws:get-current-profile'),
+  setCurrentProfile: (profile) => ipcRenderer.invoke('aws:set-profile', profile),
+  testProfile: (profile) => ipcRenderer.invoke('aws:test-profile', profile),
+  
   // Configuration operations
   getConfig: () => ipcRenderer.invoke('config:get'),
   saveConfig: (config) => ipcRenderer.invoke('config:save', config),

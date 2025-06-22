@@ -14,6 +14,9 @@ class ElectronicSessionManager {
     // Set up event listeners
     this.setupEventListeners();
     
+    // Initialize profile management
+    this.initializeProfileManagement();
+    
     // Load initial data
     this.loadInstances();
     
@@ -34,6 +37,9 @@ class ElectronicSessionManager {
       
       // Instance controls
       this.setupInstanceControls();
+      
+      // Profile controls
+      this.setupProfileControls();
     });
   }
 
@@ -80,6 +86,18 @@ class ElectronicSessionManager {
     if (refreshButton) {
       refreshButton.addEventListener('click', () => {
         this.loadInstances();
+      });
+    }
+  }
+
+  setupProfileControls() {
+    const profileSelect = document.getElementById('profile-select');
+    if (profileSelect) {
+      profileSelect.addEventListener('change', async (event) => {
+        const selectedProfile = event.target.value;
+        if (selectedProfile) {
+          await this.switchProfile(selectedProfile);
+        }
       });
     }
   }
@@ -761,6 +779,143 @@ class ElectronicSessionManager {
       `;
     } else {
       return '';
+    }
+  }
+
+  // Profile Management
+  async initializeProfileManagement() {
+    try {
+      console.log('Initializing profile management...');
+      
+      // Load available profiles
+      await this.loadAvailableProfiles();
+      
+      // Get current profile info
+      await this.loadCurrentProfileInfo();
+      
+    } catch (error) {
+      console.error('Failed to initialize profile management:', error);
+      this.addConsoleEntry('ERROR', `Profile initialization failed: ${error.message}`, 'error');
+    }
+  }
+
+  async loadAvailableProfiles() {
+    try {
+      console.log('Loading available AWS profiles...');
+      const profiles = await window.electronAPI.getAvailableProfiles();
+      
+      const profileSelect = document.getElementById('profile-select');
+      if (profileSelect) {
+        // Clear existing options
+        profileSelect.innerHTML = '';
+        
+        // Add profiles
+        profiles.forEach(profile => {
+          const option = document.createElement('option');
+          option.value = profile;
+          option.textContent = profile;
+          profileSelect.appendChild(option);
+        });
+        
+        console.log(`Loaded ${profiles.length} profiles:`, profiles);
+      }
+    } catch (error) {
+      console.error('Failed to load profiles:', error);
+      this.addConsoleEntry('ERROR', `Failed to load profiles: ${error.message}`, 'error');
+      
+      // Set fallback option
+      const profileSelect = document.getElementById('profile-select');
+      if (profileSelect) {
+        profileSelect.innerHTML = '<option value="">Error loading profiles</option>';
+      }
+    }
+  }
+
+  async loadCurrentProfileInfo() {
+    try {
+      console.log('Loading current profile information...');
+      const profileInfo = await window.electronAPI.getCurrentProfileInfo();
+      
+      this.updateProfileStatus(profileInfo);
+      
+      // Set the current profile in the dropdown
+      const profileSelect = document.getElementById('profile-select');
+      if (profileSelect) {
+        profileSelect.value = profileInfo.profile;
+      }
+      
+      console.log('Current profile info:', profileInfo);
+    } catch (error) {
+      console.error('Failed to load current profile info:', error);
+      this.addConsoleEntry('ERROR', `Failed to load current profile info: ${error.message}`, 'error');
+      
+      // Set error status
+      this.updateProfileStatus({
+        profile: 'unknown',
+        valid: false,
+        error: error.message
+      });
+    }
+  }
+
+  async switchProfile(profile) {
+    try {
+      console.log(`Switching to profile: ${profile}`);
+      this.addConsoleEntry('INFO', `Switching to AWS profile: ${profile}`, 'info');
+      
+      // Update status to loading
+      this.updateProfileStatus({
+        profile: profile,
+        valid: false,
+        error: 'Loading...'
+      });
+      
+      // Set the profile
+      const profileInfo = await window.electronAPI.setCurrentProfile(profile);
+      
+      // Update status with result
+      this.updateProfileStatus(profileInfo);
+      
+      // Refresh instances with new profile
+      await this.loadInstances();
+      
+      if (profileInfo.valid) {
+        this.addConsoleEntry('SUCCESS', `Successfully switched to profile: ${profile}`, 'info');
+      } else {
+        this.addConsoleEntry('WARNING', `Profile ${profile} set but validation failed: ${profileInfo.error}`, 'warn');
+      }
+      
+    } catch (error) {
+      console.error('Failed to switch profile:', error);
+      this.addConsoleEntry('ERROR', `Failed to switch profile: ${error.message}`, 'error');
+      
+      // Update status to error
+      this.updateProfileStatus({
+        profile: profile,
+        valid: false,
+        error: error.message
+      });
+    }
+  }
+
+  updateProfileStatus(profileInfo) {
+    const statusIndicator = document.querySelector('.status-indicator');
+    const statusText = document.querySelector('.status-text');
+    
+    if (statusIndicator && statusText) {
+      // Remove all status classes
+      statusIndicator.classList.remove('valid', 'invalid', 'loading');
+      
+      if (profileInfo.valid) {
+        statusIndicator.classList.add('valid');
+        statusText.textContent = `${profileInfo.profile} (${profileInfo.accountId || 'Valid'})`;
+      } else if (profileInfo.error === 'Loading...') {
+        statusIndicator.classList.add('loading');
+        statusText.textContent = 'Loading...';
+      } else {
+        statusIndicator.classList.add('invalid');
+        statusText.textContent = `${profileInfo.profile} (Invalid)`;
+      }
     }
   }
 }

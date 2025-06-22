@@ -121,6 +121,67 @@ const setupIPCHandlers = () => {
     }
   });
 
+  // AWS Profile operations
+  ipcMain.handle('aws:get-profiles', async () => {
+    try {
+      sendLogToRenderer('debug', 'Getting available AWS profiles...');
+      const profiles = await awsService.getAvailableProfiles();
+      sendLogToRenderer('info', `Found ${profiles.length} available profiles`);
+      return profiles;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to get profiles: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('aws:get-current-profile', async () => {
+    try {
+      sendLogToRenderer('debug', 'Getting current profile information...');
+      const profileInfo = await awsService.getCurrentProfileInfo();
+      sendLogToRenderer('info', `Current profile: ${profileInfo.profile} (${profileInfo.valid ? 'valid' : 'invalid'})`);
+      return profileInfo;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to get current profile: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('aws:set-profile', async (event, profile) => {
+    try {
+      sendLogToRenderer('info', `Setting active profile to: ${profile}`);
+      awsService.setCurrentProfile(profile);
+      
+      // Test the profile to ensure it's valid
+      const profileInfo = await awsService.getCurrentProfileInfo();
+      if (profileInfo.valid) {
+        sendLogToRenderer('info', `Profile ${profile} set successfully and validated`);
+      } else {
+        sendLogToRenderer('warn', `Profile ${profile} set but validation failed: ${profileInfo.error}`);
+      }
+      
+      return profileInfo;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to set profile: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('aws:test-profile', async (event, profile) => {
+    try {
+      sendLogToRenderer('debug', `Testing profile: ${profile}`);
+      const profileInfo = await awsService.testProfile(profile);
+      if (profileInfo.valid) {
+        sendLogToRenderer('info', `Profile ${profile} is valid`);
+      } else {
+        sendLogToRenderer('warn', `Profile ${profile} is invalid: ${profileInfo.error}`);
+      }
+      return profileInfo;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to test profile: ${error.message}`);
+      throw error;
+    }
+  });
+
   // Configuration operations
   ipcMain.handle('config:get', async () => {
     try {
