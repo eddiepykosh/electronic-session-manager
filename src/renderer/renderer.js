@@ -147,10 +147,7 @@ class ElectronicSessionManager {
     const entry = document.createElement('div');
     entry.className = `console-entry ${logLevel}`;
     
-    entry.innerHTML = `
-      <span class="timestamp">[${timestamp}] ${level}</span>
-      <span class="message">${this.escapeHtml(message)}</span>
-    `;
+    entry.innerHTML = `<span class="timestamp">[${timestamp}] ${level}</span> <span class="message">${this.escapeHtml(message)}</span>`;
 
     consoleOutput.appendChild(entry);
     

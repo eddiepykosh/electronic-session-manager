@@ -241,6 +241,7 @@ electronic-session-manager/
 - **Visual Feedback:** Clear success/error messages for session management operations
 
 ### Console Tab Implementation
+- **Improved Readability:** Reduced spacing between log entries for a more compact and readable view.
 - **Real-time Log Display:** Shows logs from both main and renderer processes
 - **Color-coded Log Levels:** ERROR (red), WARN (yellow), INFO (green), DEBUG (blue)
 - **Console Controls:** Clear and export functionality
