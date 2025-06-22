@@ -100,6 +100,14 @@ class ElectronicSessionManager {
         }
       });
     }
+
+    // Manage profiles button
+    const manageProfilesBtn = document.getElementById('manage-profiles');
+    if (manageProfilesBtn) {
+      manageProfilesBtn.addEventListener('click', () => {
+        this.showProfileManagementDialog();
+      });
+    }
   }
 
   initializeConsole() {
@@ -916,6 +924,302 @@ class ElectronicSessionManager {
         statusIndicator.classList.add('invalid');
         statusText.textContent = `${profileInfo.profile} (Invalid)`;
       }
+    }
+  }
+
+  // Profile Management Dialog
+  showProfileManagementDialog() {
+    const dialog = document.getElementById('profile-management-dialog');
+    if (dialog) {
+      dialog.classList.add('active');
+      this.setupProfileDialogControls();
+      this.loadExistingProfiles();
+    }
+  }
+
+  hideProfileManagementDialog() {
+    const dialog = document.getElementById('profile-management-dialog');
+    if (dialog) {
+      dialog.classList.remove('active');
+    }
+  }
+
+  setupProfileDialogControls() {
+    // Close button
+    const closeBtn = document.getElementById('close-profile-dialog');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        this.hideProfileManagementDialog();
+      });
+    }
+
+    // Close on backdrop click
+    const dialog = document.getElementById('profile-management-dialog');
+    if (dialog) {
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) {
+          this.hideProfileManagementDialog();
+        }
+      });
+    }
+
+    // Profile type selector
+    const profileTypeBtns = document.querySelectorAll('.profile-type-btn');
+    const profileForms = document.querySelectorAll('.profile-form');
+    
+    profileTypeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const profileType = btn.getAttribute('data-type');
+        
+        // Update active button
+        profileTypeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Show corresponding form
+        profileForms.forEach(form => {
+          form.classList.remove('active');
+          if (form.id === `${profileType}-profile-form`) {
+            form.classList.add('active');
+          }
+        });
+      });
+    });
+
+    // Form submissions
+    const iamForm = document.getElementById('iam-profile-form');
+    const ssoForm = document.getElementById('sso-profile-form');
+
+    if (iamForm) {
+      iamForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await this.createIAMProfile();
+      });
+    }
+
+    if (ssoForm) {
+      ssoForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await this.createSSOProfile();
+      });
+    }
+  }
+
+  async createIAMProfile() {
+    try {
+      const profileName = document.getElementById('iam-profile-name').value.trim();
+      const accessKeyId = document.getElementById('iam-access-key').value.trim();
+      const secretAccessKey = document.getElementById('iam-secret-key').value.trim();
+      const sessionToken = document.getElementById('iam-session-token').value.trim();
+      const region = document.getElementById('iam-region').value;
+
+      if (!profileName || !accessKeyId || !secretAccessKey) {
+        this.showError('Please fill in all required fields');
+        return;
+      }
+
+      console.log('Creating IAM profile:', profileName);
+      this.addConsoleEntry('INFO', `Creating IAM profile: ${profileName}`, 'info');
+
+      const result = await window.electronAPI.createProfile(profileName, 'iam', {
+        accessKeyId,
+        secretAccessKey,
+        sessionToken,
+        region
+      });
+
+      if (result.success) {
+        this.addConsoleEntry('SUCCESS', `IAM profile "${profileName}" created successfully`, 'info');
+        this.showSuccess(`IAM profile "${profileName}" created successfully`);
+        
+        // Clear form
+        document.getElementById('iam-profile-form').reset();
+        
+        // Refresh profiles
+        await this.loadAvailableProfiles();
+        await this.loadExistingProfiles();
+      }
+    } catch (error) {
+      console.error('Failed to create IAM profile:', error);
+      this.addConsoleEntry('ERROR', `Failed to create IAM profile: ${error.message}`, 'error');
+      this.showError(`Failed to create IAM profile: ${error.message}`);
+    }
+  }
+
+  async createSSOProfile() {
+    try {
+      const profileName = document.getElementById('sso-profile-name').value.trim();
+      const ssoStartUrl = document.getElementById('sso-start-url').value.trim();
+      const ssoRegion = document.getElementById('sso-region').value;
+      const accountId = document.getElementById('sso-account-id').value.trim();
+      const roleName = document.getElementById('sso-role-name').value.trim();
+      const region = document.getElementById('sso-aws-region').value;
+
+      if (!profileName || !ssoStartUrl || !accountId || !roleName) {
+        this.showError('Please fill in all required fields');
+        return;
+      }
+
+      console.log('Creating SSO profile:', profileName);
+      this.addConsoleEntry('INFO', `Creating SSO profile: ${profileName}`, 'info');
+
+      const result = await window.electronAPI.createProfile(profileName, 'sso', {
+        ssoStartUrl,
+        ssoRegion,
+        accountId,
+        roleName,
+        region
+      });
+
+      if (result.success) {
+        this.addConsoleEntry('SUCCESS', `SSO profile "${profileName}" created successfully`, 'info');
+        this.showSuccess(`SSO profile "${profileName}" created successfully`);
+        
+        // Clear form
+        document.getElementById('sso-profile-form').reset();
+        
+        // Refresh profiles
+        await this.loadAvailableProfiles();
+        await this.loadExistingProfiles();
+      }
+    } catch (error) {
+      console.error('Failed to create SSO profile:', error);
+      this.addConsoleEntry('ERROR', `Failed to create SSO profile: ${error.message}`, 'error');
+      this.showError(`Failed to create SSO profile: ${error.message}`);
+    }
+  }
+
+  async loadExistingProfiles() {
+    try {
+      const profiles = await window.electronAPI.getAvailableProfiles();
+      const currentProfile = await window.electronAPI.getCurrentProfileInfo();
+      
+      const profilesList = document.getElementById('existing-profiles-list');
+      if (profilesList) {
+        profilesList.innerHTML = '';
+        
+        for (const profile of profiles) {
+          const profileItem = this.createProfileItem(profile, currentProfile.profile);
+          profilesList.appendChild(profileItem);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load existing profiles:', error);
+      this.addConsoleEntry('ERROR', `Failed to load existing profiles: ${error.message}`, 'error');
+    }
+  }
+
+  createProfileItem(profileName, currentProfile) {
+    const profileItem = document.createElement('div');
+    profileItem.className = 'profile-item';
+    if (profileName === currentProfile) {
+      profileItem.classList.add('current');
+    }
+
+    const profileInfo = document.createElement('div');
+    profileInfo.className = 'profile-info';
+
+    const profileNameEl = document.createElement('div');
+    profileNameEl.className = 'profile-name';
+    profileNameEl.textContent = profileName;
+
+    const profileTypeEl = document.createElement('div');
+    profileTypeEl.className = 'profile-type';
+    profileTypeEl.textContent = profileName === 'default' ? 'Default' : 'Custom';
+
+    const statusBadge = document.createElement('span');
+    statusBadge.className = 'profile-status-badge unknown';
+    statusBadge.textContent = 'Unknown';
+
+    profileInfo.appendChild(profileNameEl);
+    profileInfo.appendChild(profileTypeEl);
+    profileInfo.appendChild(statusBadge);
+
+    const profileActions = document.createElement('div');
+    profileActions.className = 'profile-actions';
+
+    const testBtn = document.createElement('button');
+    testBtn.className = 'btn-test-profile';
+    testBtn.textContent = 'Test';
+    testBtn.addEventListener('click', () => this.testProfile(profileName, statusBadge));
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete-profile';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => this.deleteProfile(profileName, profileItem));
+    
+    // Disable delete for default profile
+    if (profileName === 'default') {
+      deleteBtn.disabled = true;
+    }
+
+    profileActions.appendChild(testBtn);
+    profileActions.appendChild(deleteBtn);
+
+    profileItem.appendChild(profileInfo);
+    profileItem.appendChild(profileActions);
+
+    // Test profile status on creation
+    this.testProfile(profileName, statusBadge);
+
+    return profileItem;
+  }
+
+  async testProfile(profileName, statusBadge) {
+    try {
+      statusBadge.className = 'profile-status-badge unknown';
+      statusBadge.textContent = 'Testing...';
+
+      const profileInfo = await window.electronAPI.testProfile(profileName);
+      
+      if (profileInfo.valid) {
+        statusBadge.className = 'profile-status-badge valid';
+        statusBadge.textContent = 'Valid';
+        this.addConsoleEntry('INFO', `Profile "${profileName}" is valid`, 'info');
+      } else {
+        statusBadge.className = 'profile-status-badge invalid';
+        statusBadge.textContent = 'Invalid';
+        this.addConsoleEntry('WARN', `Profile "${profileName}" is invalid: ${profileInfo.error}`, 'warn');
+      }
+    } catch (error) {
+      console.error('Failed to test profile:', error);
+      statusBadge.className = 'profile-status-badge invalid';
+      statusBadge.textContent = 'Error';
+      this.addConsoleEntry('ERROR', `Failed to test profile "${profileName}": ${error.message}`, 'error');
+    }
+  }
+
+  async deleteProfile(profileName, profileItem) {
+    try {
+      if (profileName === 'default') {
+        this.showError('Cannot delete the default profile');
+        return;
+      }
+
+      const confirmed = confirm(`Are you sure you want to delete the profile "${profileName}"? This action cannot be undone.`);
+      if (!confirmed) {
+        return;
+      }
+
+      console.log('Deleting profile:', profileName);
+      this.addConsoleEntry('INFO', `Deleting profile: ${profileName}`, 'info');
+
+      const result = await window.electronAPI.deleteProfile(profileName);
+
+      if (result.success) {
+        this.addConsoleEntry('SUCCESS', `Profile "${profileName}" deleted successfully`, 'info');
+        this.showSuccess(`Profile "${profileName}" deleted successfully`);
+        
+        // Remove from UI
+        profileItem.remove();
+        
+        // Refresh profiles
+        await this.loadAvailableProfiles();
+        await this.loadCurrentProfileInfo();
+      }
+    } catch (error) {
+      console.error('Failed to delete profile:', error);
+      this.addConsoleEntry('ERROR', `Failed to delete profile: ${error.message}`, 'error');
+      this.showError(`Failed to delete profile: ${error.message}`);
     }
   }
 }

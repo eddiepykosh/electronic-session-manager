@@ -182,6 +182,30 @@ const setupIPCHandlers = () => {
     }
   });
 
+  ipcMain.handle('aws:create-profile', async (event, { profileName, profileType, profileData }) => {
+    try {
+      sendLogToRenderer('info', `Creating ${profileType} profile: ${profileName}`);
+      const result = await awsService.createProfile(profileName, profileType, profileData);
+      sendLogToRenderer('info', `Profile ${profileName} created successfully`);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to create profile: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('aws:delete-profile', async (event, profileName) => {
+    try {
+      sendLogToRenderer('info', `Deleting profile: ${profileName}`);
+      const result = await awsService.deleteProfile(profileName);
+      sendLogToRenderer('info', `Profile ${profileName} deleted successfully`);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to delete profile: ${error.message}`);
+      throw error;
+    }
+  });
+
   // Configuration operations
   ipcMain.handle('config:get', async () => {
     try {

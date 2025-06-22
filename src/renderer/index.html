@@ -23,6 +23,7 @@
                 <span class="status-indicator"></span>
                 <span class="status-text">Loading...</span>
               </div>
+              <button id="manage-profiles" class="btn-manage-profiles">⚙️ Manage Profiles</button>
             </div>
           </div>
         </div>
@@ -72,6 +73,111 @@
           </div>
         </div>
       </main>
+    </div>
+    
+    <!-- Profile Management Dialog -->
+    <div id="profile-management-dialog" class="profile-dialog">
+      <div class="profile-dialog-content">
+        <div class="profile-dialog-header">
+          <h2>🔧 AWS Profile Management</h2>
+          <button id="close-profile-dialog" class="btn-close">×</button>
+        </div>
+        
+        <div class="profile-dialog-body">
+          <!-- Create New Profile Section -->
+          <div class="profile-section">
+            <h3>Create New Profile</h3>
+            <div class="profile-type-selector">
+              <button class="profile-type-btn active" data-type="iam">IAM Profile</button>
+              <button class="profile-type-btn" data-type="sso">SSO Profile</button>
+            </div>
+            
+            <!-- IAM Profile Form -->
+            <form id="iam-profile-form" class="profile-form active">
+              <div class="form-group">
+                <label for="iam-profile-name">Profile Name:</label>
+                <input type="text" id="iam-profile-name" placeholder="e.g., production" required>
+              </div>
+              <div class="form-group">
+                <label for="iam-access-key">Access Key ID:</label>
+                <input type="text" id="iam-access-key" placeholder="AKIA..." required>
+              </div>
+              <div class="form-group">
+                <label for="iam-secret-key">Secret Access Key:</label>
+                <input type="password" id="iam-secret-key" placeholder="..." required>
+              </div>
+              <div class="form-group">
+                <label for="iam-session-token">Session Token (Optional):</label>
+                <input type="password" id="iam-session-token" placeholder="For temporary credentials...">
+                <small class="form-help">Only required for temporary credentials (e.g., from AWS STS, IAM roles, etc.)</small>
+              </div>
+              <div class="form-group">
+                <label for="iam-region">Region:</label>
+                <select id="iam-region">
+                  <option value="us-east-1">US East (N. Virginia) - us-east-1</option>
+                  <option value="us-east-2">US East (Ohio) - us-east-2</option>
+                  <option value="us-west-1">US West (N. California) - us-west-1</option>
+                  <option value="us-west-2">US West (Oregon) - us-west-2</option>
+                  <option value="us-gov-east-1">AWS GovCloud (US-East) - us-gov-east-1</option>
+                  <option value="us-gov-west-1">AWS GovCloud (US-West) - us-gov-west-1</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-create-profile">Create IAM Profile</button>
+            </form>
+            
+            <!-- SSO Profile Form -->
+            <form id="sso-profile-form" class="profile-form">
+              <div class="form-group">
+                <label for="sso-profile-name">Profile Name:</label>
+                <input type="text" id="sso-profile-name" placeholder="e.g., sso-dev" required>
+              </div>
+              <div class="form-group">
+                <label for="sso-start-url">SSO Start URL:</label>
+                <input type="url" id="sso-start-url" placeholder="https://your-portal.awsapps.com/start" required>
+              </div>
+              <div class="form-group">
+                <label for="sso-region">SSO Region:</label>
+                <select id="sso-region">
+                  <option value="us-east-1">US East (N. Virginia) - us-east-1</option>
+                  <option value="us-east-2">US East (Ohio) - us-east-2</option>
+                  <option value="us-west-1">US West (N. California) - us-west-1</option>
+                  <option value="us-west-2">US West (Oregon) - us-west-2</option>
+                  <option value="us-gov-east-1">AWS GovCloud (US-East) - us-gov-east-1</option>
+                  <option value="us-gov-west-1">AWS GovCloud (US-West) - us-gov-west-1</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="sso-account-id">Account ID:</label>
+                <input type="text" id="sso-account-id" placeholder="123456789012" required>
+              </div>
+              <div class="form-group">
+                <label for="sso-role-name">Role Name:</label>
+                <input type="text" id="sso-role-name" placeholder="PowerUserRole" required>
+              </div>
+              <div class="form-group">
+                <label for="sso-aws-region">Region:</label>
+                <select id="sso-aws-region">
+                  <option value="us-east-1">US East (N. Virginia) - us-east-1</option>
+                  <option value="us-east-2">US East (Ohio) - us-east-2</option>
+                  <option value="us-west-1">US West (N. California) - us-west-1</option>
+                  <option value="us-west-2">US West (Oregon) - us-west-2</option>
+                  <option value="us-gov-east-1">AWS GovCloud (US-East) - us-gov-east-1</option>
+                  <option value="us-gov-west-1">AWS GovCloud (US-West) - us-gov-west-1</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-create-profile">Create SSO Profile</button>
+            </form>
+          </div>
+          
+          <!-- Existing Profiles Section -->
+          <div class="profile-section">
+            <h3>Existing Profiles</h3>
+            <div id="existing-profiles-list" class="profiles-list">
+              <!-- Profiles will be populated here -->
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     
     <script src="../renderer/renderer.js"></script>

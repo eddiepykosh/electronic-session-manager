@@ -435,6 +435,341 @@ class AWSService {
       throw new Error(`Failed to fetch instance information: ${error.message}`);
     }
   }
+
+  // Create a new AWS profile
+  async createProfile(profileName, profileType, profileData) {
+    try {
+      await this.ensureAWSCLI();
+      
+      if (profileType === 'iam') {
+        return await this.createIAMProfile(profileName, profileData);
+      } else if (profileType === 'sso') {
+        return await this.createSSOProfile(profileName, profileData);
+      } else {
+        throw new Error('Invalid profile type. Must be "iam" or "sso"');
+      }
+    } catch (error) {
+      console.error('Error creating profile:', error);
+      throw new Error(`Failed to create profile: ${error.message}`);
+    }
+  }
+
+  // Check if profile already exists in AWS files
+  async profileExistsInFiles(profileName) {
+    try {
+      // Check credentials file
+      try {
+        const credentialsContent = await fs.readFile(this.credentialsPath, 'utf8');
+        if (credentialsContent.includes(`[${profileName}]`)) {
+          return true;
+        }
+      } catch (error) {
+        // File doesn't exist, that's fine
+      }
+
+      // Check config file
+      try {
+        const configContent = await fs.readFile(this.configPath, 'utf8');
+        if (configContent.includes(`[profile ${profileName}]`)) {
+          return true;
+        }
+      } catch (error) {
+        // File doesn't exist, that's fine
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking if profile exists in files:', error);
+      return false;
+    }
+  }
+
+  // Create a traditional IAM profile
+  async createIAMProfile(profileName, { accessKeyId, secretAccessKey, sessionToken, region = 'us-east-1' }) {
+    try {
+      // Validate inputs
+      if (!profileName || !accessKeyId || !secretAccessKey) {
+        throw new Error('Profile name, access key ID, and secret access key are required');
+      }
+
+      // Validate profile name format
+      if (!/^[a-zA-Z0-9_-]+$/.test(profileName)) {
+        throw new Error('Profile name can only contain letters, numbers, underscores, and hyphens');
+      }
+
+      // Check if profile already exists in files
+      const existsInFiles = await this.profileExistsInFiles(profileName);
+      if (existsInFiles) {
+        throw new Error(`Profile "${profileName}" already exists in AWS configuration files`);
+      }
+
+      // Check if profile already exists via CLI
+      const existingProfiles = await this.getAvailableProfiles();
+      if (existingProfiles.includes(profileName)) {
+        throw new Error(`Profile "${profileName}" already exists`);
+      }
+
+      // Create credentials file entry
+      let credentialsEntry = `[${profileName}]
+aws_access_key_id = ${accessKeyId}
+aws_secret_access_key = ${secretAccessKey}
+`;
+      
+      // Add session token if provided
+      if (sessionToken && sessionToken.trim()) {
+        credentialsEntry += `aws_session_token = ${sessionToken}
+`;
+      }
+
+      // Append to credentials file
+      await this.appendToCredentialsFile(credentialsEntry);
+
+      // Create config file entry for region
+      const configEntry = `[profile ${profileName}]
+region = ${region}
+output = json
+`;
+
+      await this.appendToConfigFile(configEntry);
+
+      console.log(`IAM profile "${profileName}" created successfully`);
+      return {
+        success: true,
+        profileName,
+        profileType: 'iam',
+        message: `IAM profile "${profileName}" created successfully`
+      };
+    } catch (error) {
+      console.error('Error creating IAM profile:', error);
+      throw error;
+    }
+  }
+
+  // Create an AWS SSO profile
+  async createSSOProfile(profileName, { ssoStartUrl, ssoRegion, accountId, roleName, region = 'us-east-1' }) {
+    try {
+      // Validate inputs
+      if (!profileName || !ssoStartUrl || !ssoRegion || !accountId || !roleName) {
+        throw new Error('Profile name, SSO start URL, SSO region, account ID, and role name are required');
+      }
+
+      // Validate profile name format
+      if (!/^[a-zA-Z0-9_-]+$/.test(profileName)) {
+        throw new Error('Profile name can only contain letters, numbers, underscores, and hyphens');
+      }
+
+      // Check if profile already exists in files
+      const existsInFiles = await this.profileExistsInFiles(profileName);
+      if (existsInFiles) {
+        throw new Error(`Profile "${profileName}" already exists in AWS configuration files`);
+      }
+
+      // Check if profile already exists via CLI
+      const existingProfiles = await this.getAvailableProfiles();
+      if (existingProfiles.includes(profileName)) {
+        throw new Error(`Profile "${profileName}" already exists`);
+      }
+
+      // Create config file entry for SSO profile
+      const configEntry = `[profile ${profileName}]
+sso_start_url = ${ssoStartUrl}
+sso_region = ${ssoRegion}
+sso_account_id = ${accountId}
+sso_role_name = ${roleName}
+region = ${region}
+output = json
+`;
+
+      await this.appendToConfigFile(configEntry);
+
+      console.log(`SSO profile "${profileName}" created successfully`);
+      return {
+        success: true,
+        profileName,
+        profileType: 'sso',
+        message: `SSO profile "${profileName}" created successfully`
+      };
+    } catch (error) {
+      console.error('Error creating SSO profile:', error);
+      throw error;
+    }
+  }
+
+  // Append content to AWS credentials file
+  async appendToCredentialsFile(content) {
+    try {
+      await this.ensureConfigDirectory();
+      
+      // Check if file exists and has content
+      let existingContent = '';
+      try {
+        existingContent = await fs.readFile(this.credentialsPath, 'utf8');
+      } catch (error) {
+        // File doesn't exist, that's fine
+      }
+      
+      // Prepare the content to append
+      let contentToWrite = content;
+      if (existingContent.trim()) {
+        // If file has content, add a newline before the new content
+        contentToWrite = '\n' + content;
+      }
+      
+      await fs.appendFile(this.credentialsPath, contentToWrite);
+    } catch (error) {
+      // If file doesn't exist, create it
+      if (error.code === 'ENOENT') {
+        await fs.writeFile(this.credentialsPath, content);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  // Append content to AWS config file
+  async appendToConfigFile(content) {
+    try {
+      await this.ensureConfigDirectory();
+      
+      // Check if file exists and has content
+      let existingContent = '';
+      try {
+        existingContent = await fs.readFile(this.configPath, 'utf8');
+      } catch (error) {
+        // File doesn't exist, that's fine
+      }
+      
+      // Prepare the content to append
+      let contentToWrite = content;
+      if (existingContent.trim()) {
+        // If file has content, add a newline before the new content
+        contentToWrite = '\n' + content;
+      }
+      
+      await fs.appendFile(this.configPath, contentToWrite);
+    } catch (error) {
+      // If file doesn't exist, create it
+      if (error.code === 'ENOENT') {
+        await fs.writeFile(this.configPath, content);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  // Ensure AWS config directory exists
+  async ensureConfigDirectory() {
+    const configDir = path.dirname(this.credentialsPath);
+    try {
+      await fs.access(configDir);
+    } catch (error) {
+      await fs.mkdir(configDir, { recursive: true });
+    }
+  }
+
+  // Delete a profile
+  async deleteProfile(profileName) {
+    try {
+      await this.ensureAWSCLI();
+      
+      // Validate profile name
+      if (!profileName) {
+        throw new Error('Profile name is required');
+      }
+
+      // Check if profile exists
+      const existingProfiles = await this.getAvailableProfiles();
+      if (!existingProfiles.includes(profileName)) {
+        throw new Error(`Profile "${profileName}" does not exist`);
+      }
+
+      // Don't allow deletion of default profile
+      if (profileName === 'default') {
+        throw new Error('Cannot delete the default profile');
+      }
+
+      // Remove from credentials file
+      await this.removeFromCredentialsFile(profileName);
+      
+      // Remove from config file
+      await this.removeFromConfigFile(profileName);
+
+      // If this was the current profile, switch to default
+      if (this.currentProfile === profileName) {
+        this.setCurrentProfile('default');
+      }
+
+      console.log(`Profile "${profileName}" deleted successfully`);
+      return {
+        success: true,
+        profileName,
+        message: `Profile "${profileName}" deleted successfully`
+      };
+    } catch (error) {
+      console.error('Error deleting profile:', error);
+      throw new Error(`Failed to delete profile: ${error.message}`);
+    }
+  }
+
+  // Remove profile from credentials file
+  async removeFromCredentialsFile(profileName) {
+    try {
+      const content = await fs.readFile(this.credentialsPath, 'utf8');
+      const lines = content.split('\n');
+      const newLines = [];
+      let skipSection = false;
+      
+      for (const line of lines) {
+        if (line.trim() === `[${profileName}]`) {
+          skipSection = true;
+          continue;
+        }
+        
+        if (skipSection && line.trim().startsWith('[') && line.trim().endsWith(']')) {
+          skipSection = false;
+        }
+        
+        if (!skipSection) {
+          newLines.push(line);
+        }
+      }
+      
+      await fs.writeFile(this.credentialsPath, newLines.join('\n'));
+    } catch (error) {
+      // File might not exist or profile might not be in credentials file
+      console.log('Profile not found in credentials file or file does not exist');
+    }
+  }
+
+  // Remove profile from config file
+  async removeFromConfigFile(profileName) {
+    try {
+      const content = await fs.readFile(this.configPath, 'utf8');
+      const lines = content.split('\n');
+      const newLines = [];
+      let skipSection = false;
+      
+      for (const line of lines) {
+        if (line.trim() === `[profile ${profileName}]`) {
+          skipSection = true;
+          continue;
+        }
+        
+        if (skipSection && line.trim().startsWith('[') && line.trim().endsWith(']')) {
+          skipSection = false;
+        }
+        
+        if (!skipSection) {
+          newLines.push(line);
+        }
+      }
+      
+      await fs.writeFile(this.configPath, newLines.join('\n'));
+    } catch (error) {
+      // File might not exist or profile might not be in config file
+      console.log('Profile not found in config file or file does not exist');
+    }
+  }
 }
 
 module.exports = AWSService; 

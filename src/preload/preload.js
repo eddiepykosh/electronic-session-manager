@@ -23,6 +23,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCurrentProfileInfo: () => ipcRenderer.invoke('aws:get-current-profile'),
   setCurrentProfile: (profile) => ipcRenderer.invoke('aws:set-profile', profile),
   testProfile: (profile) => ipcRenderer.invoke('aws:test-profile', profile),
+  createProfile: (profileName, profileType, profileData) => 
+    ipcRenderer.invoke('aws:create-profile', { profileName, profileType, profileData }),
+  deleteProfile: (profileName) => ipcRenderer.invoke('aws:delete-profile', profileName),
   
   // Configuration operations
   getConfig: () => ipcRenderer.invoke('config:get'),
