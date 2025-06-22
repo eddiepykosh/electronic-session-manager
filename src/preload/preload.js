@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createProfile: (profileName, profileType, profileData) => 
     ipcRenderer.invoke('aws:create-profile', { profileName, profileType, profileData }),
   deleteProfile: (profileName) => ipcRenderer.invoke('aws:delete-profile', profileName),
+  performSSOLogin: (profileName) => ipcRenderer.invoke('aws:sso-login', profileName),
+  checkSSOLoginStatus: (profileName) => ipcRenderer.invoke('aws:sso-login-status', profileName),
+  getAllSSOLoginStatus: () => ipcRenderer.invoke('aws:get-all-sso-login-status'),
   
   // Configuration operations
   getConfig: () => ipcRenderer.invoke('config:get'),

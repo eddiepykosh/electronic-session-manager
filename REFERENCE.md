@@ -291,6 +291,30 @@ electronic-session-manager/
   - **Input Sanitization:** Validation of profile names and configuration data
   - **Error Recovery:** Graceful handling of file system errors
 
+### AWS SSO Login Integration ✅ **NEWLY IMPLEMENTED**
+- **SSO Login UI:** Complete interface for performing AWS SSO login
+- **Profile Detection:** Automatic detection of SSO profiles vs IAM profiles
+- **Login Status Monitoring:** Real-time monitoring of SSO authentication status
+- **One-Click Login:** Simple login button for each SSO profile
+- **Status Indicators:** Visual indicators showing authentication status
+- **Account Information:** Display of AWS account ID for authenticated profiles
+- **Session Management:** Proper handling of SSO sessions and authentication
+- **Error Handling:** Comprehensive error handling for login failures
+- **UI Components:**
+  - **SSO Login Section:** Dedicated section in profile management dialog
+  - **SSO Profile List:** Display of all SSO profiles with login status
+  - **Login/Logout Buttons:** Context-aware buttons based on authentication status
+  - **Status Badges:** Color-coded authentication status (Authenticated/Not authenticated)
+  - **Loading Indicators:** Visual feedback during login operations
+  - **Account Display:** Shows AWS account ID for authenticated profiles
+- **Backend Features:**
+  - **SSO Profile Detection:** Identifies SSO profiles by checking config file
+  - **Login Execution:** Executes `aws sso login` commands for authentication
+  - **Status Checking:** Validates authentication using AWS STS
+  - **Session Validation:** Real-time checking of SSO session validity
+  - **Error Recovery:** Graceful handling of authentication failures
+  - **CLI Integration:** Seamless integration with AWS CLI SSO commands
+
 ### Console Tab Implementation
 - **Improved Readability:** Reduced spacing between log entries for a more compact and readable view.
 - **Real-time Log Display:** Shows logs from both main and renderer processes

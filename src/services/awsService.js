@@ -770,6 +770,141 @@ output = json
       console.log('Profile not found in config file or file does not exist');
     }
   }
+
+  // Perform SSO login for a profile
+  async performSSOLogin(profileName) {
+    try {
+      await this.ensureAWSCLI();
+      
+      // Validate profile name
+      if (!profileName) {
+        throw new Error('Profile name is required');
+      }
+
+      // Check if profile exists and is an SSO profile
+      const existingProfiles = await this.getAvailableProfiles();
+      if (!existingProfiles.includes(profileName)) {
+        throw new Error(`Profile "${profileName}" does not exist`);
+      }
+
+      // Check if it's an SSO profile by looking in config file
+      const isSSOProfile = await this.isSSOProfile(profileName);
+      if (!isSSOProfile) {
+        throw new Error(`Profile "${profileName}" is not an SSO profile`);
+      }
+
+      console.log(`Starting SSO login for profile: ${profileName}`);
+      
+      // Build the SSO login command
+      const command = `aws sso login --profile ${profileName}`;
+      console.log('SSO login command:', command);
+      
+      // Execute the SSO login command
+      const { stdout, stderr } = await execAsync(command);
+      
+      console.log('SSO login stdout:', stdout);
+      if (stderr) {
+        console.log('SSO login stderr:', stderr);
+      }
+      
+      // Check if login was successful
+      const loginStatus = await this.checkSSOLoginStatus(profileName);
+      
+      return {
+        success: true,
+        profileName,
+        message: `SSO login completed for profile "${profileName}"`,
+        loginStatus
+      };
+    } catch (error) {
+      console.error('Error performing SSO login:', error);
+      throw new Error(`Failed to perform SSO login: ${error.message}`);
+    }
+  }
+
+  // Check if a profile is an SSO profile
+  async isSSOProfile(profileName) {
+    try {
+      const configContent = await fs.readFile(this.configPath, 'utf8');
+      const lines = configContent.split('\n');
+      let inProfileSection = false;
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        if (trimmedLine === `[profile ${profileName}]`) {
+          inProfileSection = true;
+          continue;
+        }
+        
+        if (inProfileSection) {
+          if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
+            // Found next profile section, stop looking
+            break;
+          }
+          
+          if (trimmedLine.startsWith('sso_')) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking if profile is SSO:', error);
+      return false;
+    }
+  }
+
+  // Check SSO login status for a profile
+  async checkSSOLoginStatus(profileName) {
+    try {
+      await this.ensureAWSCLI();
+      
+      // Test the profile to see if it's authenticated
+      const profileInfo = await this.testProfile(profileName);
+      
+      return {
+        authenticated: profileInfo.valid,
+        profileName,
+        accountId: profileInfo.accountId,
+        userId: profileInfo.userId,
+        arn: profileInfo.arn,
+        error: profileInfo.error
+      };
+    } catch (error) {
+      console.error('Error checking SSO login status:', error);
+      return {
+        authenticated: false,
+        profileName,
+        error: error.message
+      };
+    }
+  }
+
+  // Get SSO login status for all SSO profiles
+  async getAllSSOLoginStatus() {
+    try {
+      const profiles = await this.getAvailableProfiles();
+      const ssoProfiles = [];
+      
+      for (const profile of profiles) {
+        const isSSO = await this.isSSOProfile(profile);
+        if (isSSO) {
+          const loginStatus = await this.checkSSOLoginStatus(profile);
+          ssoProfiles.push({
+            profileName: profile,
+            ...loginStatus
+          });
+        }
+      }
+      
+      return ssoProfiles;
+    } catch (error) {
+      console.error('Error getting all SSO login status:', error);
+      throw new Error(`Failed to get SSO login status: ${error.message}`);
+    }
+  }
 }
 
 module.exports = AWSService; 

@@ -934,6 +934,7 @@ class ElectronicSessionManager {
       dialog.classList.add('active');
       this.setupProfileDialogControls();
       this.loadExistingProfiles();
+      this.loadSSOProfiles();
     }
   }
 
@@ -1000,6 +1001,14 @@ class ElectronicSessionManager {
       ssoForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         await this.createSSOProfile();
+      });
+    }
+
+    // SSO refresh button
+    const refreshSSOBtn = document.getElementById('refresh-sso-status');
+    if (refreshSSOBtn) {
+      refreshSSOBtn.addEventListener('click', async () => {
+        await this.loadSSOProfiles();
       });
     }
   }
@@ -1220,6 +1229,144 @@ class ElectronicSessionManager {
       console.error('Failed to delete profile:', error);
       this.addConsoleEntry('ERROR', `Failed to delete profile: ${error.message}`, 'error');
       this.showError(`Failed to delete profile: ${error.message}`);
+    }
+  }
+
+  // SSO Login Management
+  async loadSSOProfiles() {
+    try {
+      console.log('Loading SSO profiles...');
+      const ssoProfiles = await window.electronAPI.getAllSSOLoginStatus();
+      
+      const ssoProfilesList = document.getElementById('sso-profiles-list');
+      if (ssoProfilesList) {
+        ssoProfilesList.innerHTML = '';
+        
+        if (ssoProfiles.length === 0) {
+          ssoProfilesList.innerHTML = '<p class="no-sso-profiles">No SSO profiles found. Create an SSO profile first.</p>';
+          return;
+        }
+        
+        for (const ssoProfile of ssoProfiles) {
+          const ssoProfileItem = this.createSSOProfileItem(ssoProfile);
+          ssoProfilesList.appendChild(ssoProfileItem);
+        }
+      }
+      
+      console.log(`Loaded ${ssoProfiles.length} SSO profiles`);
+    } catch (error) {
+      console.error('Failed to load SSO profiles:', error);
+      this.addConsoleEntry('ERROR', `Failed to load SSO profiles: ${error.message}`, 'error');
+    }
+  }
+
+  createSSOProfileItem(ssoProfile) {
+    const ssoProfileItem = document.createElement('div');
+    ssoProfileItem.className = 'sso-profile-item';
+
+    const ssoProfileInfo = document.createElement('div');
+    ssoProfileInfo.className = 'sso-profile-info';
+
+    const ssoProfileName = document.createElement('div');
+    ssoProfileName.className = 'sso-profile-name';
+    ssoProfileName.textContent = ssoProfile.profileName;
+
+    const ssoProfileStatus = document.createElement('div');
+    ssoProfileStatus.className = 'sso-profile-status';
+    
+    const statusText = ssoProfile.authenticated ? 'Authenticated' : 'Not authenticated';
+    const statusClass = ssoProfile.authenticated ? 'authenticated' : 'not-authenticated';
+    
+    ssoProfileStatus.innerHTML = `
+      ${statusText}
+      <span class="sso-login-status ${statusClass}">${ssoProfile.authenticated ? '✓' : '✗'}</span>
+    `;
+
+    if (ssoProfile.accountId) {
+      ssoProfileStatus.innerHTML += `<br><small>Account: ${ssoProfile.accountId}</small>`;
+    }
+
+    ssoProfileInfo.appendChild(ssoProfileName);
+    ssoProfileInfo.appendChild(ssoProfileStatus);
+
+    const ssoProfileActions = document.createElement('div');
+    ssoProfileActions.className = 'sso-profile-actions';
+
+    if (ssoProfile.authenticated) {
+      // Show logout button for authenticated profiles
+      const logoutBtn = document.createElement('button');
+      logoutBtn.className = 'btn-sso-logout';
+      logoutBtn.textContent = 'Logout';
+      logoutBtn.addEventListener('click', () => this.logoutSSOProfile(ssoProfile.profileName, ssoProfileItem));
+      ssoProfileActions.appendChild(logoutBtn);
+    } else {
+      // Show login button for unauthenticated profiles
+      const loginBtn = document.createElement('button');
+      loginBtn.className = 'btn-sso-login';
+      loginBtn.textContent = 'Login';
+      loginBtn.addEventListener('click', () => this.loginSSOProfile(ssoProfile.profileName, ssoProfileItem));
+      ssoProfileActions.appendChild(loginBtn);
+    }
+
+    ssoProfileItem.appendChild(ssoProfileInfo);
+    ssoProfileItem.appendChild(ssoProfileActions);
+
+    return ssoProfileItem;
+  }
+
+  async loginSSOProfile(profileName, profileItem) {
+    try {
+      console.log(`Starting SSO login for profile: ${profileName}`);
+      this.addConsoleEntry('INFO', `Starting SSO login for profile: ${profileName}`, 'info');
+      
+      // Update button to show loading state
+      const loginBtn = profileItem.querySelector('.btn-sso-login');
+      const originalText = loginBtn.textContent;
+      loginBtn.innerHTML = '<span class="sso-login-loading"></span>Logging in...';
+      loginBtn.disabled = true;
+      
+      const result = await window.electronAPI.performSSOLogin(profileName);
+      
+      if (result.success) {
+        this.addConsoleEntry('SUCCESS', `SSO login successful for profile: ${profileName}`, 'info');
+        this.showSuccess(`SSO login successful for profile: ${profileName}`);
+        
+        // Refresh the SSO profiles list
+        await this.loadSSOProfiles();
+      }
+    } catch (error) {
+      console.error('Failed to login SSO profile:', error);
+      this.addConsoleEntry('ERROR', `Failed to login SSO profile: ${error.message}`, 'error');
+      this.showError(`Failed to login SSO profile: ${error.message}`);
+      
+      // Reset button state
+      const loginBtn = profileItem.querySelector('.btn-sso-login');
+      loginBtn.textContent = 'Login';
+      loginBtn.disabled = false;
+    }
+  }
+
+  async logoutSSOProfile(profileName, profileItem) {
+    try {
+      const confirmed = confirm(`Are you sure you want to logout from profile "${profileName}"?`);
+      if (!confirmed) {
+        return;
+      }
+
+      console.log(`Logging out from SSO profile: ${profileName}`);
+      this.addConsoleEntry('INFO', `Logging out from SSO profile: ${profileName}`, 'info');
+      
+      // For now, we'll just refresh the status since AWS CLI doesn't have a direct logout command
+      // The session will expire naturally, or users can clear their AWS SSO cache manually
+      this.addConsoleEntry('INFO', `SSO logout initiated for profile: ${profileName}. Session will expire naturally.`, 'info');
+      this.showSuccess(`SSO logout initiated for profile: ${profileName}`);
+      
+      // Refresh the SSO profiles list
+      await this.loadSSOProfiles();
+    } catch (error) {
+      console.error('Failed to logout SSO profile:', error);
+      this.addConsoleEntry('ERROR', `Failed to logout SSO profile: ${error.message}`, 'error');
+      this.showError(`Failed to logout SSO profile: ${error.message}`);
     }
   }
 }

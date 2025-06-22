@@ -206,6 +206,43 @@ const setupIPCHandlers = () => {
     }
   });
 
+  // SSO Login operations
+  ipcMain.handle('aws:sso-login', async (event, profileName) => {
+    try {
+      sendLogToRenderer('info', `Starting SSO login for profile: ${profileName}`);
+      const result = await awsService.performSSOLogin(profileName);
+      sendLogToRenderer('info', `SSO login completed for profile: ${profileName}`);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to perform SSO login: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('aws:sso-login-status', async (event, profileName) => {
+    try {
+      sendLogToRenderer('debug', `Checking SSO login status for profile: ${profileName}`);
+      const result = await awsService.checkSSOLoginStatus(profileName);
+      sendLogToRenderer('info', `SSO login status for ${profileName}: ${result.authenticated ? 'Authenticated' : 'Not authenticated'}`);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to check SSO login status: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('aws:get-all-sso-login-status', async () => {
+    try {
+      sendLogToRenderer('debug', 'Getting SSO login status for all profiles');
+      const result = await awsService.getAllSSOLoginStatus();
+      sendLogToRenderer('info', `Found ${result.length} SSO profiles`);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to get SSO login status: ${error.message}`);
+      throw error;
+    }
+  });
+
   // Configuration operations
   ipcMain.handle('config:get', async () => {
     try {

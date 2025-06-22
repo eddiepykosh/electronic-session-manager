@@ -1337,6 +1337,142 @@ body {
   color: #ef6c00;
 }
 
+/* SSO Login Section */
+.sso-login-section {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.sso-description {
+  color: #666;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.sso-profiles-list {
+  margin-bottom: 1rem;
+}
+
+.sso-profile-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.sso-profile-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.sso-profile-info {
+  flex: 1;
+}
+
+.sso-profile-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.sso-profile-status {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.sso-login-status {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-left: 0.5rem;
+}
+
+.sso-login-status.authenticated {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.sso-login-status.not-authenticated {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.sso-profile-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-sso-login {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s ease;
+}
+
+.btn-sso-login:hover {
+  background: #388e3c;
+}
+
+.btn-sso-login:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-sso-logout {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s ease;
+}
+
+.btn-sso-logout:hover {
+  background: #d32f2f;
+}
+
+.sso-login-loading {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.no-sso-profiles {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px dashed #ccc;
+}
+
 /* Responsive design for profile dialog */
 @media (max-width: 768px) {
   .profile-dialog-content {
