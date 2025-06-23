@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project uses GitHub Actions to automatically build and release the Electronic Session Manager application for Windows. The pipeline creates both installer and portable versions of the application.
+This project uses GitHub Actions to automatically build and release the Electronic Session Manager application for Windows, macOS, and Linux. The pipeline creates installers for all platforms and a portable version for Windows.
 
 ## Workflow File
 
@@ -10,8 +10,10 @@ The CI/CD pipeline is defined in `.github/workflows/build.yml` and provides the 
 
 - **Automated builds** on version tag pushes
 - **Manual builds** via workflow dispatch
-- **Windows installer** creation
-- **Portable version** creation
+- **Multi-platform support** (Windows, macOS, Linux)
+- **Windows installer and portable** creation
+- **macOS installer** creation
+- **Linux installer** creation
 - **Automatic GitHub releases**
 
 ## How to Use
@@ -25,8 +27,9 @@ The CI/CD pipeline is defined in `.github/workflows/build.yml` and provides the 
    ```
 
 2. **The workflow will automatically:**
-   - Build the application for Windows
-   - Create installer and portable versions
+   - Build the application for Windows, macOS, and Linux
+   - Create installers for all platforms
+   - Create a portable version for Windows
    - Upload artifacts to GitHub
    - Create a GitHub release with all files
 
@@ -44,30 +47,44 @@ The CI/CD pipeline is defined in `.github/workflows/build.yml` and provides the 
 
 ## Build Outputs
 
-### Windows Installer
-- **Location:** `out/make/squirrel.windows/x64/*.exe`
-- **Purpose:** Standard Windows installer for easy installation
-- **Features:** Automatic updates, start menu integration, uninstall support
+### Windows
+- **Installer:** `out/make/squirrel.windows/x64/*.exe` - Standard Windows installer
+- **Zip Package:** `out/make/zip/win32/x64/*.zip` - Standard zip archive
+- **Portable:** `electronic-session-manager-portable-windows.zip` - Self-contained portable version
 
-### Windows Portable
-- **Location:** `electronic-session-manager-portable-windows.zip`
-- **Purpose:** Self-contained application that doesn't require installation
-- **Features:**
-  - Extract and run from any location
-  - Includes `run.bat` launcher script
-  - No registry entries or system modifications
-  - Perfect for USB drives or restricted environments
+### macOS
+- **DMG Installer:** `out/make/dmg/x64/*.dmg` - Standard macOS disk image
+- **Zip Package:** `out/make/zip/darwin/x64/*.zip` - Standard zip archive
 
-### Standard Zip Package
-- **Location:** `out/make/zip/win32/x64/*.zip`
-- **Purpose:** Standard Electron Forge zip package
-- **Features:** Basic zip archive of the application
+### Linux
+- **DEB Package:** `out/make/deb/x64/*.deb` - Debian/Ubuntu package
+- **RPM Package:** `out/make/rpm/x64/*.rpm` - Red Hat/Fedora package
+- **AppImage:** `out/make/appimage/x64/*.AppImage` - Universal Linux package
+- **Zip Package:** `out/make/zip/linux/x64/*.zip` - Standard zip archive
+
+## Platform-Specific Features
+
+### Windows Portable Version
+- **Self-contained application** with `run.bat` launcher
+- **No installation required** - extract and run
+- **Perfect for USB drives** or restricted environments
+- **Includes README** with usage instructions
+
+### macOS DMG
+- **Standard macOS installer** format
+- **Drag-and-drop installation** to Applications folder
+- **Code signing ready** (requires Apple Developer account)
+
+### Linux Packages
+- **DEB/RPM packages** for package manager installation
+- **AppImage** for universal Linux compatibility
+- **Zip archive** for manual installation
 
 ## Artifacts
 
 All build artifacts are automatically uploaded to GitHub Actions with:
 - **30-day retention** period
-- **Separate artifact names** for easy identification
+- **Separate artifact names** for each platform
 - **Automatic release creation** on tag pushes
 
 ## Requirements
@@ -75,11 +92,27 @@ All build artifacts are automatically uploaded to GitHub Actions with:
 ### For Builds
 - **Node.js 18** (automatically installed by workflow)
 - **Windows environment** (provided by GitHub Actions)
+- **macOS environment** (provided by GitHub Actions)
+- **Ubuntu environment** (provided by GitHub Actions)
 - **GitHub repository** with proper permissions
 
 ### For Releases
 - **GitHub token** (automatically provided)
 - **Version tags** following semantic versioning (e.g., `v1.0.0`)
+
+## Build Process
+
+### Parallel Builds
+The workflow runs three parallel jobs:
+1. **build-windows** - Creates Windows installer and portable version
+2. **build-macos** - Creates macOS DMG and zip packages
+3. **build-linux** - Creates Linux DEB, RPM, AppImage, and zip packages
+
+### Release Creation
+After all builds complete successfully:
+- **create-release** job downloads all artifacts
+- **Creates GitHub release** with all platform-specific installers
+- **Includes all distribution formats** for maximum compatibility
 
 ## Troubleshooting
 
@@ -89,18 +122,23 @@ All build artifacts are automatically uploaded to GitHub Actions with:
    - Check that `package.json` is valid
    - Ensure all dependencies are properly specified
 
-2. **Portable version not created:**
+2. **Portable version not created (Windows only):**
    - Verify the build completed successfully
    - Check that the main executable was found in the build output
 
 3. **Release not created:**
    - Ensure the tag follows the `v*` pattern
    - Check that the workflow has proper permissions
+   - Verify all build jobs completed successfully
+
+4. **Platform-specific build failures:**
+   - Check platform-specific dependencies
+   - Verify Electron Forge makers are properly configured
 
 ### Debugging
 
 The workflow includes debug steps that:
-- List all build outputs
+- List all build outputs for each platform
 - Provide detailed error messages
 - Show the location of built applications
 
@@ -108,15 +146,14 @@ The workflow includes debug steps that:
 
 ### Adding More Platforms
 
-To add support for macOS or Linux:
-
-1. **Update forge.config.js** to include additional makers
-2. **Modify the workflow** to run on multiple platforms
-3. **Add platform-specific build steps**
+The current setup supports:
+- **Windows:** Squirrel installer, zip package, portable version
+- **macOS:** DMG installer, zip package
+- **Linux:** DEB, RPM, AppImage, zip packages
 
 ### Modifying Build Process
 
-1. **Edit `.github/workflows/build.yml** to change build steps
+1. **Edit `.github/workflows/build.yml`** to change build steps
 2. **Update forge.config.js** to modify Electron Forge configuration
 3. **Test changes** using manual workflow dispatch
 
@@ -125,4 +162,5 @@ To add support for macOS or Linux:
 - **No sensitive data** is included in builds
 - **Dependencies** are installed from npm registry
 - **Build artifacts** are temporary and automatically cleaned up
-- **GitHub token** has minimal required permissions 
+- **GitHub token** has minimal required permissions
+- **Multi-platform builds** run in isolated environments 

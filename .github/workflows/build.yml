@@ -109,15 +109,95 @@ This is a portable version of Electronic Session Manager that can be run without
         name: windows-portable
         path: electronic-session-manager-portable-windows.zip
         retention-days: 30
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
         
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build application
+      run: npm run make
+      
+    - name: List build outputs
+      run: |
+        echo "=== Build Outputs ==="
+        find out -type f -name "*.dmg" -o -name "*.zip" | head -20
+        
+    - name: Upload macOS Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-installer
+        path: |
+          out/make/zip/darwin/x64/*.zip
+          out/make/dmg/x64/*.dmg
+        retention-days: 30
+
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build application
+      run: npm run make
+      
+    - name: List build outputs
+      run: |
+        echo "=== Build Outputs ==="
+        find out -type f -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.zip" | head -20
+        
+    - name: Upload Linux Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-installer
+        path: |
+          out/make/deb/x64/*.deb
+          out/make/rpm/x64/*.rpm
+          out/make/zip/linux/x64/*.zip
+        retention-days: 30
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      
     - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          out/make/squirrel.windows/x64/*.exe
-          out/make/zip/win32/x64/*.zip
-          electronic-session-manager-portable-windows.zip
+          windows-installer/*.exe
+          windows-installer/*.zip
+          windows-portable/*.zip
+          macos-installer/*.zip
+          macos-installer/*.dmg
+          linux-installer/*.deb
+          linux-installer/*.rpm
+          linux-installer/*.zip
         draft: false
         prerelease: false
       env:
