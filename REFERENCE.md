@@ -74,6 +74,8 @@ electronic-session-manager/
 - **Security Features:** Fuses enabled for enhanced security
 - **Packaging:** ASAR packaging enabled for distribution
 - **Main Entry:** Updated to point to `src/main/main.js`
+- **Executable Name:** Configured as 'electronic-session-manager' to match package.json name field
+- **Linux Build Fix:** Added explicit executableName configuration to resolve Linux deb/rpm build issues
 
 ## Planned Functionality
 
@@ -455,3 +457,10 @@ The status bar is located at the bottom of the application and provides real-tim
 - **Profile Integration:** Updates when profiles are switched or validated
 - **Session Tracking:** Updates when port forwarding sessions start or stop
 - **App State Management:** Updates during loading operations and error states
+
+### Recent Build Pipeline Fixes ✅ **JUST IMPLEMENTED**
+- **Linux Build Issue:** Fixed executable name mismatch causing deb/rpm build failures
+- **Root Cause:** Product name "Electronic Session Manager" vs executable name "electronic-session-manager"
+- **Solution:** Added `executableName: 'electronic-session-manager'` to forge.config.js packagerConfig
+- **Additional Config:** Enhanced deb and rpm maker configurations with maintainer and homepage info
+- **Expected Result:** Linux builds should now complete successfully for both .deb and .rpm packages
