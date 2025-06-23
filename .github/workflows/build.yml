@@ -6,6 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Add permissions for creating releases
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -79,6 +83,7 @@ jobs:
         path: |
           out/make/squirrel.windows/x64/*.exe
           out/make/zip/win32/x64/*.zip
+          out/make/zip/win32/x64/*.exe
         retention-days: 30
         
     - name: Upload Windows Portable
@@ -119,6 +124,7 @@ jobs:
         path: |
           out/make/zip/darwin/x64/*.zip
           out/make/dmg/x64/*.dmg
+          out/make/zip/darwin/x64/*.app
         retention-days: 30
 
   build-linux:
@@ -153,6 +159,7 @@ jobs:
           out/make/deb/x64/*.deb
           out/make/rpm/x64/*.rpm
           out/make/zip/linux/x64/*.zip
+          out/make/zip/linux/x64/*
         retention-days: 30
 
   create-release:
@@ -163,20 +170,25 @@ jobs:
     steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
+      with:
+        path: artifacts
       
+    - name: List downloaded artifacts
+      run: |
+        echo "=== Downloaded Artifacts ==="
+        find artifacts -type f | head -20
+        
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          windows-installer/*.exe
-          windows-installer/*.zip
-          windows-portable/*.zip
-          macos-installer/*.zip
-          macos-installer/*.dmg
-          linux-installer/*.deb
-          linux-installer/*.rpm
-          linux-installer/*.zip
+          artifacts/windows-installer/*
+          artifacts/windows-portable/*
+          artifacts/macos-installer/*
+          artifacts/linux-installer/*
         draft: false
         prerelease: false
+        generate_release_notes: true
+        fail_on_unmatched_files: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

@@ -464,3 +464,10 @@ The status bar is located at the bottom of the application and provides real-tim
 - **Solution:** Added `executableName: 'electronic-session-manager'` to forge.config.js packagerConfig
 - **Additional Config:** Enhanced deb and rpm maker configurations with maintainer and homepage info
 - **Expected Result:** Linux builds should now complete successfully for both .deb and .rpm packages
+
+### Release Pipeline Fixes ✅ **JUST IMPLEMENTED**
+- **403 Forbidden Error:** Added `permissions: contents: write` to workflow for release creation
+- **File Pattern Issues:** Updated artifact upload paths to include more file types and be more flexible
+- **Artifact Download:** Added explicit download path configuration and debugging output
+- **Release Creation:** Added `fail_on_unmatched_files: false` and `generate_release_notes: true`
+- **File Patterns:** Simplified to use wildcard patterns (`artifacts/*-installer/*`) for better compatibility
