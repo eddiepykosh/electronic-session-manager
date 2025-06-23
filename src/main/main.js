@@ -243,6 +243,19 @@ const setupIPCHandlers = () => {
     }
   });
 
+  // AWS CLI operations
+  ipcMain.handle('aws:check-cli', async () => {
+    try {
+      sendLogToRenderer('debug', 'Checking AWS CLI availability...');
+      const available = await awsService.checkAWSCLI();
+      sendLogToRenderer('info', `AWS CLI ${available ? 'available' : 'not available'}`);
+      return { available };
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to check AWS CLI: ${error.message}`);
+      return { available: false, error: error.message };
+    }
+  });
+
   // Configuration operations
   ipcMain.handle('config:get', async () => {
     try {

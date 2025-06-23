@@ -17,6 +17,9 @@ class ElectronicSessionManager {
     // Initialize profile management
     this.initializeProfileManagement();
     
+    // Initialize status bar
+    this.initializeStatusBar();
+    
     // Load initial data
     this.loadInstances();
     
@@ -628,81 +631,100 @@ class ElectronicSessionManager {
   }
 
   async startCustomPortForwarding(instanceId) {
-    const localPort = parseInt(document.getElementById('local-port').value);
-    const remotePort = parseInt(document.getElementById('remote-port').value);
-    
-    // Validate inputs
-    if (!localPort || !remotePort) {
-      this.showError('Please enter valid port numbers');
-      return;
-    }
-    
-    if (localPort < 1024 || localPort > 65535) {
-      this.showError('Local port must be between 1024 and 65535');
-      return;
-    }
-    
-    if (remotePort < 1 || remotePort > 65535) {
-      this.showError('Remote port must be between 1 and 65535');
-      return;
-    }
-    
     try {
-      console.log('Starting custom port forwarding for instance:', instanceId);
-      this.addConsoleEntry('System', `Starting custom port forwarding for instance: ${instanceId} (${localPort} -> ${remotePort})`, 'info');
+      const localPort = document.getElementById('local-port').value;
+      const remotePort = document.getElementById('remote-port').value;
       
-      if (window.electronAPI && window.electronAPI.startPortForwarding) {
-        const result = await window.electronAPI.startPortForwarding(instanceId, localPort, remotePort);
-        this.addConsoleEntry('System', `Custom port forwarding started for instance ${instanceId}`, 'info');
-        
-        // Track the active session
+      if (!localPort || !remotePort) {
+        this.showError('Please enter both local and remote ports');
+        return;
+      }
+      
+      this.updateStatusBar({ 
+        appStatus: 'busy',
+        appStatusText: 'Starting port forwarding...'
+      });
+      
+      const result = await window.electronAPI.startPortForwarding(instanceId, parseInt(localPort), parseInt(remotePort));
+      
+      if (result.success) {
+        // Store the session
         this.activeSessions.set(instanceId, {
           sessionId: result.sessionId,
-          connectionType: 'Custom',
           localPort: localPort,
-          remotePort: remotePort
+          remotePort: remotePort,
+          startTime: new Date()
         });
         
-        this.showPortForwardingSuccess('Custom', instanceId, localPort, remotePort, result.sessionId);
-        this.closeCustomPortDialog();
+        // Update status bar
+        this.updateStatusBar({ 
+          appStatus: 'ready',
+          appStatusText: 'Ready',
+          activeSessions: this.activeSessions.size
+        });
         
-        // Refresh instance details to show stop button
-        this.refreshInstanceDetails(instanceId);
+        this.showPortForwardingSuccess('Custom Port Forwarding', instanceId, localPort, remotePort, result.sessionId);
+        this.closeCustomPortDialog();
+      } else {
+        this.updateStatusBar({ 
+          appStatus: 'error',
+          appStatusText: 'Error'
+        });
+        this.showError(result.error || 'Failed to start port forwarding');
       }
     } catch (error) {
-      console.error('Error starting custom port forwarding:', error);
-      this.addConsoleEntry('ERROR', `Failed to start custom port forwarding for instance ${instanceId}: ${error.message}`, 'error');
-      this.showError(`Failed to start custom port forwarding: ${error.message}`);
+      this.updateStatusBar({ 
+        appStatus: 'error',
+        appStatusText: 'Error'
+      });
+      console.error('Error starting port forwarding:', error);
+      this.showError(`Failed to start port forwarding: ${error.message}`);
     }
   }
 
   async stopPortForwarding(instanceId) {
-    const session = this.activeSessions.get(instanceId);
-    if (!session) {
-      this.showError('No active port forwarding session found for this instance');
-      return;
-    }
-    
     try {
-      console.log('Stopping port forwarding for instance:', instanceId, 'session:', session.sessionId);
-      this.addConsoleEntry('System', `Stopping port forwarding for instance: ${instanceId}`, 'info');
+      const session = this.activeSessions.get(instanceId);
+      if (!session) {
+        this.showError('No active session found for this instance');
+        return;
+      }
       
-      if (window.electronAPI && window.electronAPI.stopPortForwarding) {
-        const result = await window.electronAPI.stopPortForwarding(instanceId, session.sessionId);
-        this.addConsoleEntry('System', `Port forwarding stopped for instance ${instanceId}`, 'info');
-        
-        // Remove from active sessions
+      this.updateStatusBar({ 
+        appStatus: 'busy',
+        appStatusText: 'Stopping session...'
+      });
+      
+      const result = await window.electronAPI.stopPortForwarding(instanceId, session.sessionId);
+      
+      if (result.success) {
+        // Remove the session from tracking
         this.activeSessions.delete(instanceId);
         
-        // Show success message
+        // Update status bar
+        this.updateStatusBar({ 
+          appStatus: 'ready',
+          appStatusText: 'Ready',
+          activeSessions: this.activeSessions.size
+        });
+        
         this.showSuccess(`Port forwarding stopped for instance ${instanceId}`);
         
-        // Refresh instance details to remove stop button
+        // Refresh instance details to update the UI
         this.refreshInstanceDetails(instanceId);
+      } else {
+        this.updateStatusBar({ 
+          appStatus: 'error',
+          appStatusText: 'Error'
+        });
+        this.showError(result.error || 'Failed to stop port forwarding');
       }
     } catch (error) {
+      this.updateStatusBar({ 
+        appStatus: 'error',
+        appStatusText: 'Error'
+      });
       console.error('Error stopping port forwarding:', error);
-      this.addConsoleEntry('ERROR', `Failed to stop port forwarding for instance ${instanceId}: ${error.message}`, 'error');
       this.showError(`Failed to stop port forwarding: ${error.message}`);
     }
   }
@@ -907,24 +929,44 @@ class ElectronicSessionManager {
   }
 
   updateProfileStatus(profileInfo) {
-    const statusIndicator = document.querySelector('.status-indicator');
-    const statusText = document.querySelector('.status-text');
+    const statusIndicator = document.querySelector('#profile-status .status-indicator');
+    const statusText = document.querySelector('#profile-status .status-text');
     
-    if (statusIndicator && statusText) {
-      // Remove all status classes
-      statusIndicator.classList.remove('valid', 'invalid', 'loading');
-      
-      if (profileInfo.valid) {
-        statusIndicator.classList.add('valid');
-        statusText.textContent = `${profileInfo.profile} (${profileInfo.accountId || 'Valid'})`;
-      } else if (profileInfo.error === 'Loading...') {
-        statusIndicator.classList.add('loading');
-        statusText.textContent = 'Loading...';
-      } else {
-        statusIndicator.classList.add('invalid');
-        statusText.textContent = `${profileInfo.profile} (Invalid)`;
-      }
+    if (!profileInfo) {
+      statusIndicator.className = 'status-indicator';
+      statusText.textContent = 'No profile selected';
+      this.updateProfileStatusInStatusBar(null);
+      return;
     }
+    
+    if (profileInfo.valid) {
+      statusIndicator.className = 'status-indicator valid';
+      statusText.textContent = `Connected as ${profileInfo.profile}`;
+    } else {
+      statusIndicator.className = 'status-indicator invalid';
+      statusText.textContent = 'Invalid profile';
+    }
+    
+    // Update status bar
+    this.updateProfileStatusInStatusBar(profileInfo);
+  }
+
+  updateProfileStatusInStatusBar(profileInfo) {
+    if (!profileInfo) {
+      this.updateStatusBar({
+        profile: 'none',
+        profileText: 'None'
+      });
+      return;
+    }
+
+    const status = profileInfo.valid ? 'available' : 'unavailable';
+    const text = profileInfo.valid ? profileInfo.profile : 'Invalid';
+    
+    this.updateStatusBar({
+      profile: status,
+      profileText: text
+    });
   }
 
   // Profile Management Dialog
@@ -1368,6 +1410,144 @@ class ElectronicSessionManager {
       this.addConsoleEntry('ERROR', `Failed to logout SSO profile: ${error.message}`, 'error');
       this.showError(`Failed to logout SSO profile: ${error.message}`);
     }
+  }
+
+  // Status Bar Management
+  initializeStatusBar() {
+    console.log('Initializing status bar');
+    
+    // Set initial status
+    this.updateStatusBar({
+      awsCli: 'checking',
+      profile: 'none',
+      activeSessions: 0,
+      appStatus: 'ready',
+      lastUpdate: 'Never'
+    });
+    
+    // Check AWS CLI availability
+    this.checkAWSCLIStatus();
+    
+    // Set up periodic status updates
+    this.setupStatusBarUpdates();
+  }
+
+  async checkAWSCLIStatus() {
+    try {
+      this.updateStatusBar({ awsCli: 'checking' });
+      
+      if (window.electronAPI) {
+        const result = await window.electronAPI.checkAWSCLI();
+        const status = result.available ? 'available' : 'unavailable';
+        const text = result.available ? 'Available' : 'Not Found';
+        
+        this.updateStatusBar({ 
+          awsCli: status,
+          awsCliText: text
+        });
+      } else {
+        this.updateStatusBar({ 
+          awsCli: 'unavailable',
+          awsCliText: 'API Unavailable'
+        });
+      }
+    } catch (error) {
+      console.error('Error checking AWS CLI status:', error);
+      this.updateStatusBar({ 
+        awsCli: 'error',
+        awsCliText: 'Error'
+      });
+    }
+  }
+
+  updateStatusBar(updates) {
+    const statusElements = {
+      awsCli: {
+        indicator: document.querySelector('#aws-cli-status .status-indicator'),
+        text: document.querySelector('#aws-cli-status .status-text')
+      },
+      profile: {
+        indicator: document.querySelector('#current-profile-status .status-indicator'),
+        text: document.querySelector('#current-profile-status .status-text')
+      },
+      activeSessions: {
+        text: document.querySelector('#active-sessions-status .status-text')
+      },
+      appStatus: {
+        indicator: document.querySelector('#app-status .status-indicator'),
+        text: document.querySelector('#app-status .status-text')
+      },
+      lastUpdate: {
+        text: document.querySelector('#last-update-time .status-text')
+      }
+    };
+
+    // Update AWS CLI status
+    if (updates.awsCli && statusElements.awsCli.indicator) {
+      statusElements.awsCli.indicator.className = `status-indicator ${updates.awsCli}`;
+      if (updates.awsCliText) {
+        statusElements.awsCli.text.textContent = updates.awsCliText;
+      }
+    }
+
+    // Update profile status
+    if (updates.profile && statusElements.profile.indicator) {
+      statusElements.profile.indicator.className = `status-indicator ${updates.profile}`;
+      if (updates.profileText) {
+        statusElements.profile.text.textContent = updates.profileText;
+      }
+    }
+
+    // Update active sessions count
+    if (updates.activeSessions !== undefined && statusElements.activeSessions.text) {
+      statusElements.activeSessions.text.textContent = updates.activeSessions.toString();
+    }
+
+    // Update app status
+    if (updates.appStatus && statusElements.appStatus.indicator) {
+      statusElements.appStatus.indicator.className = `status-indicator ${updates.appStatus}`;
+      if (updates.appStatusText) {
+        statusElements.appStatus.text.textContent = updates.appStatusText;
+      }
+    }
+
+    // Update last update time
+    if (updates.lastUpdate && statusElements.lastUpdate.text) {
+      statusElements.lastUpdate.text.textContent = updates.lastUpdate;
+    }
+  }
+
+  setupStatusBarUpdates() {
+    // Update active sessions count periodically
+    setInterval(() => {
+      const activeSessionsCount = this.activeSessions.size;
+      this.updateStatusBar({ activeSessions: activeSessionsCount });
+    }, 5000); // Update every 5 seconds
+
+    // Update last update time when instances are refreshed
+    const originalLoadInstances = this.loadInstances.bind(this);
+    this.loadInstances = async () => {
+      this.updateStatusBar({ 
+        appStatus: 'busy',
+        appStatusText: 'Loading...'
+      });
+      
+      try {
+        await originalLoadInstances();
+        const now = new Date().toLocaleTimeString();
+        this.updateStatusBar({ 
+          appStatus: 'ready',
+          appStatusText: 'Ready',
+          lastUpdate: now
+        });
+      } catch (error) {
+        this.updateStatusBar({ 
+          appStatus: 'error',
+          appStatusText: 'Error'
+        });
+        console.error('Error loading instances:', error);
+      }
+    };
   }
 }
 

@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Electronic Session Manager</title>
+    <title>ELECTRONic Session Manager</title>
     <link rel="stylesheet" href="../styles/main.css" />
   </head>
   <body>
@@ -10,7 +10,7 @@
       <header class="app-header">
         <div class="header-content">
           <div class="header-left">
-            <h1>🔌 Electronic Session Manager</h1>
+            <h1>ELECTRONic Session Manager</h1>
             <p>AWS EC2 Instance Management Tool</p>
           </div>
           <div class="header-right">
@@ -73,6 +73,49 @@
           </div>
         </div>
       </main>
+      
+      <!-- Status Bar -->
+      <footer class="status-bar">
+        <div class="status-bar-content">
+          <div class="status-left">
+            <div class="status-item">
+              <span class="status-label">AWS CLI:</span>
+              <span id="aws-cli-status" class="status-value">
+                <span class="status-indicator"></span>
+                <span class="status-text">Checking...</span>
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Profile:</span>
+              <span id="current-profile-status" class="status-value">
+                <span class="status-indicator"></span>
+                <span class="status-text">None</span>
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Active Sessions:</span>
+              <span id="active-sessions-status" class="status-value">
+                <span class="status-text">0</span>
+              </span>
+            </div>
+          </div>
+          <div class="status-right">
+            <div class="status-item">
+              <span class="status-label">App Status:</span>
+              <span id="app-status" class="status-value">
+                <span class="status-indicator"></span>
+                <span class="status-text">Ready</span>
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Last Update:</span>
+              <span id="last-update-time" class="status-value">
+                <span class="status-text">Never</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
     
     <!-- Profile Management Dialog -->

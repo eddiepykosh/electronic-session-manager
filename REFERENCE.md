@@ -56,14 +56,15 @@ electronic-session-manager/
 
 ### Current Application State
 - **Main Process (`src/main/main.js`):** Enhanced with IPC handlers, service initialization, and log forwarding to renderer
-- **Renderer Process (`src/renderer/index.html`):** Tabbed interface with Instances and Console tabs, **NEW: Refresh Instances button**
-- **Renderer Process (`src/renderer/renderer.js`):** **NEW: Complete EC2 instance loading and display functionality, NEW: Instance details panel implementation**
-- **Preload Script (`src/preload/preload.js`):** Complete API exposure including log message handling
-- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, **NEW: Instance list styling and action buttons, NEW: Comprehensive instance details panel styling**
+- **Renderer Process (`src/renderer/index.html`):** Tabbed interface with Instances and Console tabs, **NEW: Refresh Instances button, NEW: Status bar at bottom of app**
+- **Renderer Process (`src/renderer/renderer.js`):** **NEW: Complete EC2 instance loading and display functionality, NEW: Instance details panel implementation, NEW: Status bar management system**
+- **Preload Script (`src/preload/preload.js`):** Complete API exposure including log message handling, **NEW: AWS CLI check functionality**
+- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, **NEW: Instance list styling and action buttons, NEW: Comprehensive instance details panel styling, NEW: Status bar styling with responsive design**
 - **AWS Service (`src/services/awsService.js`):** Complete AWS CLI integration with graceful CLI availability handling
 - **Configuration (`src/config/config.js`):** Configuration management with file persistence
 - **Logging (`src/utils/logger.js`):** Structured logging utility with file output support
 - **Console Tab:** Real-time log viewer with export functionality
+- **Status Bar:** **NEW: Real-time status tracking for AWS CLI, profiles, active sessions, app status, and last update time**
 
 ### Build Configuration
 - **Forge Config:** Configured for multiple platforms (Windows, macOS, Linux)
@@ -185,6 +186,18 @@ electronic-session-manager/
 - **Linting:** ESLint for code quality
 
 ## Recent Updates ✅ **NEW SECTION**
+
+### Status Bar Feature ✅ **JUST IMPLEMENTED**
+- **Status Bar Location:** Added at the bottom of the application with dark theme
+- **AWS CLI Status Tracking:** Real-time monitoring of AWS CLI availability with visual indicators
+- **Profile Status Display:** Shows current AWS profile and validation status
+- **Active Sessions Counter:** Tracks number of active port forwarding sessions in real-time
+- **App Status Monitoring:** Shows application state (ready, busy, error) with appropriate indicators
+- **Last Update Timestamp:** Displays when instances were last refreshed
+- **Responsive Design:** Status bar adapts to different screen sizes and orientations
+- **Integration:** Seamlessly integrated with existing profile management and session tracking systems
+- **Real-time Updates:** Automatic updates every 5 seconds for session count, event-driven updates for other statuses
+- **Error Handling:** Graceful handling of API failures and network connectivity issues
 
 ### .gitignore Cleanup ✅ **JUST COMPLETED**
 - **Removed Duplicates:** Eliminated all duplicate entries throughout the file
@@ -365,3 +378,47 @@ electronic-session-manager/
 - **Visual Design:** Red gradient styling for stop button to indicate destructive action
 - **Error Handling:** Comprehensive error handling for session management operations
 - **Console Integration:** All session operations logged to console tab for debugging
+
+### Status Bar Feature ✅ **NEW SECTION**
+
+The status bar is located at the bottom of the application and provides real-time information about:
+
+#### Status Indicators
+- **AWS CLI Status:** Shows whether AWS CLI is available, unavailable, or checking
+  - Green indicator: AWS CLI is available and working
+  - Red indicator: AWS CLI is not found or not working
+  - Yellow indicator: Checking AWS CLI availability
+  - Text shows "Available", "Not Found", or "Error"
+
+- **Profile Status:** Shows the current AWS profile and its validity
+  - Green indicator: Profile is valid and authenticated
+  - Red indicator: Profile is invalid or not authenticated
+  - Text shows profile name or "None" if no profile selected
+
+- **Active Sessions:** Shows the number of active port forwarding sessions
+  - Updates in real-time as sessions start and stop
+  - Shows "0" when no sessions are active
+
+- **App Status:** Shows the current application state
+  - Green indicator: App is ready and idle
+  - Yellow indicator: App is busy (loading instances, starting sessions, etc.)
+  - Red indicator: App encountered an error
+  - Text shows "Ready", "Loading...", "Starting port forwarding...", etc.
+
+- **Last Update:** Shows when instances were last refreshed
+  - Updates automatically when instances are loaded
+  - Shows "Never" if instances haven't been loaded yet
+
+#### Technical Implementation
+- **Real-time Updates:** Status updates automatically every 5 seconds for session count
+- **Event-driven Updates:** Profile status, app status, and last update time update based on user actions
+- **Responsive Design:** Status bar adapts to different screen sizes
+- **Error Handling:** Graceful handling of API failures and network issues
+- **Integration:** Seamlessly integrated with existing profile management and session tracking
+
+#### Status Bar Management
+- **Initialization:** Status bar initializes on app startup with default values
+- **AWS CLI Check:** Automatically checks AWS CLI availability on startup
+- **Profile Integration:** Updates when profiles are switched or validated
+- **Session Tracking:** Updates when port forwarding sessions start or stop
+- **App State Management:** Updates during loading operations and error states

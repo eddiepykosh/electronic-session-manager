@@ -1503,3 +1503,119 @@ body {
     justify-content: flex-end;
   }
 }
+
+/* Status Bar */
+.status-bar {
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #34495e;
+  font-size: 0.85rem;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.status-bar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.status-left,
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-label {
+  font-weight: 500;
+  color: #bdc3c7;
+  font-size: 0.8rem;
+}
+
+.status-value {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status-value .status-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #95a5a6;
+  transition: background-color 0.3s ease;
+}
+
+.status-value .status-indicator.available {
+  background: #27ae60;
+}
+
+.status-value .status-indicator.unavailable {
+  background: #e74c3c;
+}
+
+.status-value .status-indicator.checking {
+  background: #f39c12;
+  animation: pulse 1s infinite;
+}
+
+.status-value .status-indicator.ready {
+  background: #27ae60;
+}
+
+.status-value .status-indicator.busy {
+  background: #f39c12;
+  animation: pulse 1s infinite;
+}
+
+.status-value .status-indicator.error {
+  background: #e74c3c;
+}
+
+.status-value .status-text {
+  font-weight: 400;
+  color: #ecf0f1;
+}
+
+/* Status bar responsive design */
+@media (max-width: 768px) {
+  .status-bar {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .status-left,
+  .status-right {
+    gap: 0.75rem;
+  }
+  
+  .status-item {
+    gap: 0.25rem;
+  }
+  
+  .status-label {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-bar-content {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .status-left,
+  .status-right {
+    gap: 0.5rem;
+  }
+}

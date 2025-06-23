@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkSSOLoginStatus: (profileName) => ipcRenderer.invoke('aws:sso-login-status', profileName),
   getAllSSOLoginStatus: () => ipcRenderer.invoke('aws:get-all-sso-login-status'),
   
+  // AWS CLI operations
+  checkAWSCLI: () => ipcRenderer.invoke('aws:check-cli'),
+  
   // Configuration operations
   getConfig: () => ipcRenderer.invoke('config:get'),
   saveConfig: (config) => ipcRenderer.invoke('config:save', config),
