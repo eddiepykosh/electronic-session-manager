@@ -199,13 +199,13 @@ electronic-session-manager/
 - **Build Process:**
   - **Windows:** Node.js 18 on Windows latest with Squirrel installer and portable version
   - **macOS:** Node.js 18 on macOS latest with DMG installer
-  - **Linux:** Node.js 18 on Ubuntu latest with DEB, RPM, and AppImage packages
+  - **Linux:** Node.js 18 on Ubuntu latest with DEB and RPM packages
   - Dependency installation with npm caching
   - Electron Forge build using `npm run make`
 - **Artifacts Generated:**
   - **Windows:** Squirrel installer (.exe), zip package, and portable version
   - **macOS:** DMG installer (.dmg) and zip package
-  - **Linux:** DEB package (.deb), RPM package (.rpm), AppImage (.AppImage), and zip package
+  - **Linux:** DEB package (.deb), RPM package (.rpm), and zip package
 - **Portable Version Features (Windows only):**
   - Self-contained application with all dependencies
   - `run.bat` launcher script for easy execution
@@ -218,7 +218,7 @@ electronic-session-manager/
 - **Build Outputs:**
   - **Windows:** `out/make/squirrel.windows/x64/*.exe`, `out/make/zip/win32/x64/*.zip`, `electronic-session-manager-portable-windows.zip`
   - **macOS:** `out/make/dmg/x64/*.dmg`, `out/make/zip/darwin/x64/*.zip`
-  - **Linux:** `out/make/deb/x64/*.deb`, `out/make/rpm/x64/*.rpm`, `out/make/appimage/x64/*.AppImage`, `out/make/zip/linux/x64/*.zip`
+  - **Linux:** `out/make/deb/x64/*.deb`, `out/make/rpm/x64/*.rpm`, `out/make/zip/linux/x64/*.zip`
 
 ### Status Bar Feature ✅ **JUST IMPLEMENTED**
 - **Status Bar Location:** Added at the bottom of the application with dark theme

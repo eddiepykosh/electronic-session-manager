@@ -59,7 +59,6 @@ The CI/CD pipeline is defined in `.github/workflows/build.yml` and provides the 
 ### Linux
 - **DEB Package:** `out/make/deb/x64/*.deb` - Debian/Ubuntu package
 - **RPM Package:** `out/make/rpm/x64/*.rpm` - Red Hat/Fedora package
-- **AppImage:** `out/make/appimage/x64/*.AppImage` - Universal Linux package
 - **Zip Package:** `out/make/zip/linux/x64/*.zip` - Standard zip archive
 
 ## Platform-Specific Features
@@ -77,7 +76,6 @@ The CI/CD pipeline is defined in `.github/workflows/build.yml` and provides the 
 
 ### Linux Packages
 - **DEB/RPM packages** for package manager installation
-- **AppImage** for universal Linux compatibility
 - **Zip archive** for manual installation
 
 ## Artifacts
@@ -106,7 +104,7 @@ All build artifacts are automatically uploaded to GitHub Actions with:
 The workflow runs three parallel jobs:
 1. **build-windows** - Creates Windows installer and portable version
 2. **build-macos** - Creates macOS DMG and zip packages
-3. **build-linux** - Creates Linux DEB, RPM, AppImage, and zip packages
+3. **build-linux** - Creates Linux DEB, RPM, and zip packages
 
 ### Release Creation
 After all builds complete successfully:
@@ -149,7 +147,7 @@ The workflow includes debug steps that:
 The current setup supports:
 - **Windows:** Squirrel installer, zip package, portable version
 - **macOS:** DMG installer, zip package
-- **Linux:** DEB, RPM, AppImage, zip packages
+- **Linux:** DEB, RPM, zip packages
 
 ### Modifying Build Process
 
