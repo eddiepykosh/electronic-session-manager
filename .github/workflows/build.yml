@@ -1,0 +1,124 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build application
+      run: npm run make
+      
+    - name: Create portable version
+      run: |
+        # Create a portable directory structure
+        $portableDir = "portable-electronic-session-manager"
+        New-Item -ItemType Directory -Path $portableDir -Force
+        
+        # Find the built app (either from zip maker or squirrel maker)
+        $builtApp = $null
+        $zipApp = Get-ChildItem -Path "out" -Recurse -Filter "*.exe" | Where-Object { $_.Name -eq "electronic-session-manager.exe" } | Select-Object -First 1
+        if ($zipApp) {
+          $builtApp = $zipApp
+        } else {
+          # Fallback to squirrel output
+          $squirrelApp = Get-ChildItem -Path "out/make/squirrel.windows/x64" -Recurse -Filter "*.exe" | Where-Object { $_.Name -eq "electronic-session-manager.exe" } | Select-Object -First 1
+          if ($squirrelApp) {
+            $builtApp = $squirrelApp
+          }
+        }
+        
+        if ($builtApp) {
+          $appDir = $builtApp.Directory.FullName
+          Write-Host "Found built app at: $appDir"
+          Copy-Item -Path "$appDir\*" -Destination $portableDir -Recurse -Force
+        } else {
+          Write-Error "Could not find built application"
+          exit 1
+        }
+        
+        # Create a batch file to run the portable version
+        $batchContent = @"
+@echo off
+cd /d "%~dp0"
+start electronic-session-manager.exe
+"@
+        $batchContent | Out-File -FilePath "$portableDir\run.bat" -Encoding ASCII
+        
+        # Create a README for the portable version
+        $readmeContent = @"
+# Electronic Session Manager - Portable Version
+
+This is a portable version of Electronic Session Manager that can be run without installation.
+
+## Usage
+1. Extract this folder to any location
+2. Run `run.bat` or double-click `electronic-session-manager.exe`
+3. The application will start without requiring installation
+
+## Requirements
+- Windows 10 or later
+- No additional dependencies required (all included)
+
+## Notes
+- This is a portable version - no registry entries or system files are modified
+- You can move this folder to any location or USB drive
+- Settings are stored locally within the application folder
+"@
+        $readmeContent | Out-File -FilePath "$portableDir\README.md" -Encoding UTF8
+        
+        # Create the portable zip
+        Compress-Archive -Path $portableDir -DestinationPath "electronic-session-manager-portable-windows.zip" -Force
+        
+        Write-Host "Portable version created successfully"
+        
+    - name: List build outputs
+      run: |
+        Write-Host "=== Build Outputs ==="
+        Get-ChildItem -Path "out" -Recurse | Format-Table Name, FullName
+        
+    - name: Upload Windows Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-installer
+        path: |
+          out/make/squirrel.windows/x64/*.exe
+          out/make/zip/win32/x64/*.zip
+        retention-days: 30
+        
+    - name: Upload Windows Portable
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-portable
+        path: electronic-session-manager-portable-windows.zip
+        retention-days: 30
+        
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          out/make/squirrel.windows/x64/*.exe
+          out/make/zip/win32/x64/*.zip
+          electronic-session-manager-portable-windows.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

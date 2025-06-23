@@ -8,6 +8,9 @@
 ### Project Structure
 ```
 electronic-session-manager/
+├── .github/                # GitHub Actions workflows
+│   └── workflows/          # CI/CD pipeline definitions
+│       └── build.yml       # Build and release workflow
 ├── forge.config.js          # Electron Forge configuration
 ├── package.json             # Project dependencies and scripts
 ├── package-lock.json        # Locked dependency versions
@@ -186,6 +189,34 @@ electronic-session-manager/
 - **Linting:** ESLint for code quality
 
 ## Recent Updates ✅ **NEW SECTION**
+
+### GitHub Actions CI/CD Pipeline ✅ **JUST IMPLEMENTED**
+- **Workflow File:** `.github/workflows/build.yml` - Automated build and release pipeline
+- **Triggers:** 
+  - Automatic builds on version tag pushes (e.g., `v1.0.0`)
+  - Manual workflow dispatch for testing builds
+- **Build Platform:** Windows (latest) with Node.js 18
+- **Build Process:**
+  - Dependency installation with npm caching
+  - Electron Forge build using `npm run make`
+  - Creates both installer and portable versions
+- **Artifacts Generated:**
+  - **Windows Installer:** Squirrel-based installer (.exe) for easy installation
+  - **Windows Portable:** Self-contained zip file with run.bat launcher
+  - **Standard Zip:** Electron Forge zip package
+- **Portable Version Features:**
+  - Self-contained application with all dependencies
+  - `run.bat` launcher script for easy execution
+  - README.md with usage instructions
+  - No installation required - extract and run
+- **Release Management:**
+  - Automatic GitHub releases on tag pushes
+  - Artifact uploads with 30-day retention
+  - Includes all Windows variants (installer, portable, zip)
+- **Build Outputs:**
+  - `out/make/squirrel.windows/x64/*.exe` - Windows installer
+  - `out/make/zip/win32/x64/*.zip` - Standard zip package
+  - `electronic-session-manager-portable-windows.zip` - Portable version
 
 ### Status Bar Feature ✅ **JUST IMPLEMENTED**
 - **Status Bar Location:** Added at the bottom of the application with dark theme
