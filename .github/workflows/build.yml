@@ -55,33 +55,11 @@ jobs:
         }
         
         # Create a batch file to run the portable version
-        $batchContent = @"
-@echo off
-cd /d "%~dp0"
-start electronic-session-manager.exe
-"@
+        $batchContent = '@echo off' + "`n" + 'cd /d "%~dp0"' + "`n" + 'start electronic-session-manager.exe'
         $batchContent | Out-File -FilePath "$portableDir\run.bat" -Encoding ASCII
         
         # Create a README for the portable version
-        $readmeContent = @"
-# Electronic Session Manager - Portable Version
-
-This is a portable version of Electronic Session Manager that can be run without installation.
-
-## Usage
-1. Extract this folder to any location
-2. Run `run.bat` or double-click `electronic-session-manager.exe`
-3. The application will start without requiring installation
-
-## Requirements
-- Windows 10 or later
-- No additional dependencies required (all included)
-
-## Notes
-- This is a portable version - no registry entries or system files are modified
-- You can move this folder to any location or USB drive
-- Settings are stored locally within the application folder
-"@
+        $readmeContent = "# Electronic Session Manager - Portable Version`n`nThis is a portable version of Electronic Session Manager that can be run without installation.`n`n## Usage`n1. Extract this folder to any location`n2. Run `run.bat` or double-click `electronic-session-manager.exe``n3. The application will start without requiring installation`n`n## Requirements`n- Windows 10 or later`n- No additional dependencies required (all included)`n`n## Notes`n- This is a portable version - no registry entries or system files are modified`n- You can move this folder to any location or USB drive`n- Settings are stored locally within the application folder"
         $readmeContent | Out-File -FilePath "$portableDir\README.md" -Encoding UTF8
         
         # Create the portable zip
