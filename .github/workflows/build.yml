@@ -1,194 +1,50 @@
-name: Build and Release
+name: Build and Release Electron Forge App
 
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
+      - v*    # Triggers on version tags like v1.0.0
 
-# Add permissions for creating releases
 permissions:
-  contents: write
+  contents: write   # Required for creating releases and uploading assets
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build application
-      run: npm run make
-      
-    - name: Create portable version
-      run: |
-        # Create a portable directory structure
-        $portableDir = "portable-electronic-session-manager"
-        New-Item -ItemType Directory -Path $portableDir -Force
-        
-        # Find the built app (either from zip maker or squirrel maker)
-        $builtApp = $null
-        $zipApp = Get-ChildItem -Path "out" -Recurse -Filter "*.exe" | Where-Object { $_.Name -eq "electronic-session-manager.exe" } | Select-Object -First 1
-        if ($zipApp) {
-          $builtApp = $zipApp
-        } else {
-          # Fallback to squirrel output
-          $squirrelApp = Get-ChildItem -Path "out/make/squirrel.windows/x64" -Recurse -Filter "*.exe" | Where-Object { $_.Name -eq "electronic-session-manager.exe" } | Select-Object -First 1
-          if ($squirrelApp) {
-            $builtApp = $squirrelApp
-          }
-        }
-        
-        if ($builtApp) {
-          $appDir = $builtApp.Directory.FullName
-          Write-Host "Found built app at: $appDir"
-          Copy-Item -Path "$appDir\*" -Destination $portableDir -Recurse -Force
-        } else {
-          Write-Error "Could not find built application"
-          exit 1
-        }
-        
-        # Create a batch file to run the portable version
-        $batchContent = '@echo off' + "`n" + 'cd /d "%~dp0"' + "`n" + 'start electronic-session-manager.exe'
-        $batchContent | Out-File -FilePath "$portableDir\run.bat" -Encoding ASCII
-        
-        # Create a README for the portable version
-        $readmeContent = "# Electronic Session Manager - Portable Version`n`nThis is a portable version of Electronic Session Manager that can be run without installation.`n`n## Usage`n1. Extract this folder to any location`n2. Run `run.bat` or double-click `electronic-session-manager.exe``n3. The application will start without requiring installation`n`n## Requirements`n- Windows 10 or later`n- No additional dependencies required (all included)`n`n## Notes`n- This is a portable version - no registry entries or system files are modified`n- You can move this folder to any location or USB drive`n- Settings are stored locally within the application folder"
-        $readmeContent | Out-File -FilePath "$portableDir\README.md" -Encoding UTF8
-        
-        # Create the portable zip
-        Compress-Archive -Path $portableDir -DestinationPath "electronic-session-manager-portable-windows.zip" -Force
-        
-        Write-Host "Portable version created successfully"
-        
-    - name: List build outputs
-      run: |
-        Write-Host "=== Build Outputs ==="
-        Get-ChildItem -Path "out" -Recurse | Format-Table Name, FullName
-        
-    - name: Upload Windows Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: windows-installer
-        path: |
-          out/make/squirrel.windows/x64/*.exe
-          out/make/zip/win32/x64/*.zip
-          out/make/zip/win32/x64/*.exe
-        retention-days: 30
-        
-    - name: Upload Windows Portable
-      uses: actions/upload-artifact@v4
-      with:
-        name: windows-portable
-        path: electronic-session-manager-portable-windows.zip
-        retention-days: 30
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
-  build-macos:
-    runs-on: macos-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build application
-      run: npm run make
-      
-    - name: List build outputs
-      run: |
-        echo "=== Build Outputs ==="
-        find out -type f -name "*.dmg" -o -name "*.zip" | head -20
-        
-    - name: Upload macOS Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: macos-installer
-        path: |
-          out/make/zip/darwin/x64/*.zip
-          out/make/dmg/x64/*.dmg
-          out/make/zip/darwin/x64/*.app
-        retention-days: 30
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  build-linux:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build application
-      run: npm run make
-      
-    - name: List build outputs
-      run: |
-        echo "=== Build Outputs ==="
-        find out -type f -name "*.deb" -o -name "*.rpm" -o -name "*.zip" | head -20
-        
-    - name: Upload Linux Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux-installer
-        path: |
-          out/make/deb/x64/*.deb
-          out/make/rpm/x64/*.rpm
-          out/make/zip/linux/x64/*.zip
-          out/make/zip/linux/x64/*
-        retention-days: 30
+      - name: Set up Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-  create-release:
-    needs: [build-windows, build-macos, build-linux]
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: artifacts
-      
-    - name: List downloaded artifacts
-      run: |
-        echo "=== Downloaded Artifacts ==="
-        find artifacts -type f | head -20
-        
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          artifacts/windows-installer/*
-          artifacts/windows-portable/*
-          artifacts/macos-installer/*
-          artifacts/linux-installer/*
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-        fail_on_unmatched_files: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Make distributables (Electron Forge)
+        run: npm run make
+
+      - name: Archive distributables
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: out/make/
+
+      - name: Create GitHub Release and Upload Assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/make/**/*.zip
+            out/make/**/*.deb
+            out/make/**/*.rpm
+            out/make/**/*.exe
+            out/make/**/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
