@@ -1,5 +1,4 @@
-** Still in very active development and was primarily written by Cursor. Not everything the AI made has been reviewed yet so this is considered unstable and some features might not work.  Use AI responsibly kids. **
-
+**Still in very active development and was primarily written by Cursor. Not everything the AI made has been reviewed yet so this is considered unstable and some features might not work.  Use AI responsibly kids.**
 
 
 # Electronic Session Manager
@@ -64,7 +63,6 @@ sudo yum install -y session-manager-plugin.rpm
    ```bash
    npm install
    ```
-   ```
 
 ## Development
 
@@ -114,6 +112,7 @@ electronic-session-manager/
 ## Configuration
 
 *Most of the config stuff is irrelevant for now*
+
 The application stores configuration in:
 - **Windows**: `%APPDATA%\.electronic-session-manager\config.json`
 - **macOS/Linux**: `~/.electronic-session-manager/config.json`
