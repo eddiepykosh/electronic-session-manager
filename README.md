@@ -16,10 +16,9 @@ A modern Electron-based desktop application for managing AWS EC2 instances throu
 
 ## Prerequisites
 
-- **Node.js** (v16 or higher)
+- **Node.js** (v22 LTS but probably anything >16 will work)
 - **AWS CLI** (v2 or higher)
 - **AWS Session Manager Plugin**
-- **AWS Credentials** configured
 
 ### Installing Prerequisites
 
@@ -65,10 +64,6 @@ sudo yum install -y session-manager-plugin.rpm
    ```bash
    npm install
    ```
-
-3. **Configure AWS credentials**
-   ```bash
-   aws configure
    ```
 
 ## Development
@@ -118,6 +113,7 @@ electronic-session-manager/
 
 ## Configuration
 
+*Most of the config stuff is irrelevant for now*
 The application stores configuration in:
 - **Windows**: `%APPDATA%\.electronic-session-manager\config.json`
 - **macOS/Linux**: `~/.electronic-session-manager/config.json`
@@ -166,28 +162,9 @@ The application stores configuration in:
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+1. PLEASE
 
 ## License
 
 MIT License - see LICENSE file for details
-
-## Support
-
-For issues and questions:
-- Check the documentation in the `docs/` folder
-- Review the logs in the application
-- Open an issue on GitHub
-
-## Roadmap
-
-- [ ] Enhanced session management
-- [ ] Terminal integration
-- [ ] Multiple AWS profile support
-- [ ] Instance monitoring and alerts
-- [ ] Automated backups
-- [ ] Plugin system for extensions 
+ 
