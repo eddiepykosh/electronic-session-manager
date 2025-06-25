@@ -1,4 +1,4 @@
-** Still in very active development and was primarily written by Cursor. Not everything the AI made has been reviewed yet so this is not ready for prime-time yet. Use AI responsibly kids. **
+** Still in very active development and was primarily written by Cursor. Not everything the AI made has been reviewed yet so this is considered unstable and some features might not work.  Use AI responsibly kids. **
 
 
 
