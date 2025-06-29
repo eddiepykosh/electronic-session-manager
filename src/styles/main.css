@@ -806,8 +806,8 @@ body {
 
 .instance-type,
 .instance-az {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
+/*  color: var(--text-secondary);
+  font-size: 0.85rem; */
   margin-bottom: 0.25rem;
   transition: color 0.3s ease;
 }
