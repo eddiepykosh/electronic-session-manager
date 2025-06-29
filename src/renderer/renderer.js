@@ -7,9 +7,11 @@ import StatusBarManager from './StatusBarManager.js';
 import ConnectionManager from './ConnectionManager.js';
 import InstanceManager from './InstanceManager.js';
 import ProfileManager from './ProfileManager.js';
+import DarkModeManager from './DarkModeManager.js';
 
 class ElectronicSessionManager {
   constructor() {
+    this.darkModeManager = new DarkModeManager();
     this.uiManager = new UIManager();
     this.consoleManager = new ConsoleManager(this.uiManager);
     this.statusBarManager = new StatusBarManager();

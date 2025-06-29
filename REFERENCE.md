@@ -471,3 +471,33 @@ The status bar is located at the bottom of the application and provides real-tim
 - **Artifact Download:** Added explicit download path configuration and debugging output
 - **Release Creation:** Added `fail_on_unmatched_files: false` and `generate_release_notes: true`
 - **File Patterns:** Simplified to use wildcard patterns (`artifacts/*-installer/*`) for better compatibility
+
+### Dark Mode Toggle Feature ✅ **NEWLY IMPLEMENTED**
+- **Toggle Switch Location:** Added to the header next to the profile selector for easy access
+- **Visual Design:** Modern toggle switch with moon icon and smooth animations
+- **Theme Persistence:** Dark mode preference is saved to localStorage and restored on app restart
+- **CSS Variables:** Complete theming system using CSS custom properties for consistent colors
+- **Smooth Transitions:** All UI elements transition smoothly between light and dark modes
+- **Comprehensive Coverage:** All components, dialogs, and UI elements support dark mode
+- **Color Scheme:**
+  - **Light Mode:** Clean, modern light theme with subtle shadows and borders
+  - **Dark Mode:** Professional dark theme with proper contrast ratios for readability
+- **Accessibility:** Ensures proper contrast ratios and readable text in both modes
+- **Responsive Design:** Dark mode toggle and styling work on all screen sizes
+- **Technical Implementation:**
+  - **DarkModeManager Class:** Handles toggle functionality and theme persistence
+  - **CSS Variables:** Complete color system with light/dark variants
+  - **Local Storage:** Saves user preference across sessions
+  - **Smooth Transitions:** 0.3s ease transitions for all color changes
+- **UI Components Updated:**
+  - **Header:** Gradient background adapts to theme
+  - **Sidebar:** Background, borders, and text colors
+  - **Content Area:** Background and text colors
+  - **Tabs:** Background, borders, and active states
+  - **Buttons:** All button variants with proper contrast
+  - **Dialogs:** Profile management, port forwarding, and success popups
+  - **Status Bar:** Background, borders, and text colors
+  - **Console:** Background, text, and log level colors
+  - **Instance Details:** All panels, sections, and data displays
+  - **Forms:** Input fields, labels, and validation messages
+  - **Notifications:** Background, borders, and text colors
