@@ -1,7 +1,7 @@
 # Electronic Session Manager - Project Reference
 
 ## Project Overview
-**Electronic Session Manager** is an Electron-based desktop application designed to provide a graphical user interface for managing AWS EC2 instances through the AWS CLI Session Manager plugin. The application will allow users to describe, start/stop, and establish port forwarding connections to EC2 instances.
+**Electronic Session Manager** is an Electron-based desktop application designed to provide a graphical user interface for managing AWS EC2 instances through the AWS CLI Session Manager plugin. The application allows users to describe, start/stop, and establish port forwarding connections to EC2 instances.
 
 ## Current Project State
 
@@ -16,29 +16,41 @@ electronic-session-manager/
 ├── package-lock.json        # Locked dependency versions
 ├── README.md               # Project documentation
 ├── REFERENCE.md            # This reference document
-├── .gitignore              # Git ignore patterns (CLEANED UP)
+├── .gitignore              # Git ignore patterns
 ├── docs/                   # Documentation
 │   └── DEVELOPMENT.md      # Development guide
 ├── scripts/                # Build and utility scripts
 ├── tests/                  # Test files
 ├── build/                  # Build artifacts
 ├── dist/                   # Distribution files
+├── cli_bins/               # CLI binary files
 └── src/                    # Source code
     ├── main/               # Main process files
     │   └── main.js         # Main process entry point
     ├── renderer/           # Renderer process files
     │   ├── index.html      # Main HTML file with tabbed interface
-    │   └── renderer.js     # Renderer process logic with console
+    │   ├── renderer.js     # Renderer process logic
+    │   ├── UIManager.js    # UI management and coordination
+    │   ├── InstanceManager.js # EC2 instance management
+    │   ├── ProfileManager.js # AWS profile management
+    │   ├── ConsoleManager.js # Console/log viewer management
+    │   ├── ConnectionManager.js # Port forwarding management
+    │   ├── StatusBarManager.js # Status bar management
+    │   └── DarkModeManager.js # Dark mode toggle functionality
     ├── preload/            # Preload scripts
     │   └── preload.js      # Secure API exposure
     ├── services/           # Business logic services
-    │   ├── awsService.js   # AWS CLI operations
-    │   └── sessionService.js # Session management (future)
+    │   ├── awsService.js   # Main AWS service integration
+    │   └── aws/            # AWS-specific services
+    │       ├── common.js   # Common AWS utilities
+    │       ├── ec2Service.js # EC2 instance operations
+    │       ├── profileService.js # Profile management
+    │       └── ssmService.js # Session Manager operations
     ├── utils/              # Utility functions
     │   └── logger.js       # Logging utility
     ├── config/             # Configuration management
     │   └── config.js       # App configuration
-    ├── components/         # UI components (future)
+    ├── components/         # UI components
     ├── styles/             # CSS styles
     │   └── main.css        # Main stylesheet with tabbed UI
     ├── assets/             # Static assets
@@ -59,15 +71,20 @@ electronic-session-manager/
 
 ### Current Application State
 - **Main Process (`src/main/main.js`):** Enhanced with IPC handlers, service initialization, and log forwarding to renderer
-- **Renderer Process (`src/renderer/index.html`):** Tabbed interface with Instances and Console tabs, **NEW: Refresh Instances button, NEW: Status bar at bottom of app**
-- **Renderer Process (`src/renderer/renderer.js`):** **NEW: Complete EC2 instance loading and display functionality, NEW: Instance details panel implementation, NEW: Status bar management system**
-- **Preload Script (`src/preload/preload.js`):** Complete API exposure including log message handling, **NEW: AWS CLI check functionality**
-- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, **NEW: Instance list styling and action buttons, NEW: Comprehensive instance details panel styling, NEW: Status bar styling with responsive design**
-- **AWS Service (`src/services/awsService.js`):** Complete AWS CLI integration with graceful CLI availability handling
+- **Renderer Process (`src/renderer/index.html`):** Tabbed interface with Instances and Console tabs, refresh instances button, status bar
+- **Renderer Process (`src/renderer/renderer.js`):** EC2 instance loading and display functionality, instance details panel, status bar management
+- **Preload Script (`src/preload/preload.js`):** Complete API exposure including log message handling, AWS CLI check functionality
+- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, instance list styling, comprehensive instance details panel styling, status bar styling with responsive design
+- **AWS Services:**
+  - `src/services/awsService.js`: Main AWS CLI integration with graceful CLI availability handling
+  - `src/services/aws/ec2Service.js`: EC2 instance operations
+  - `src/services/aws/profileService.js`: Profile management and SSO integration
+  - `src/services/aws/ssmService.js`: Session Manager operations
+  - `src/services/aws/common.js`: Common AWS utilities
 - **Configuration (`src/config/config.js`):** Configuration management with file persistence
 - **Logging (`src/utils/logger.js`):** Structured logging utility with file output support
 - **Console Tab:** Real-time log viewer with export functionality
-- **Status Bar:** **NEW: Real-time status tracking for AWS CLI, profiles, active sessions, app status, and last update time**
+- **Status Bar:** Real-time status tracking for AWS CLI, profiles, active sessions, app status, and last update time
 
 ### Build Configuration
 - **Forge Config:** Configured for multiple platforms (Windows, macOS, Linux)
@@ -81,107 +98,107 @@ electronic-session-manager/
 
 ### Core Features
 1. **EC2 Instance Management**
-   - List and describe EC2 instances ✅ (Service implemented)
-   - Start/stop EC2 instances ✅ (Service implemented)
-   - View instance details (status, type, region, etc.) ✅ (Service implemented)
+   - List and describe EC2 instances (Service implemented)
+   - Start/stop EC2 instances (Service implemented)
+   - View instance details (status, type, region, etc.) (Service implemented)
 
 2. **AWS Session Manager Integration**
-   - Connect to EC2 instances via Session Manager ✅ (Service implemented)
+   - Connect to EC2 instances via Session Manager (Service implemented)
    - Establish secure shell connections (UI pending)
    - Manage multiple concurrent sessions (UI pending)
 
 3. **Port Forwarding**
-   - Configure port forwarding rules ✅ (Service implemented)
-   - Establish local-to-remote port mappings ✅ (Service implemented)
+   - Configure port forwarding rules (Service implemented)
+   - Establish local-to-remote port mappings (Service implemented)
    - Monitor active port forwarding sessions (UI pending)
 
-4. **Console/Logging System** ✅ **NEWLY IMPLEMENTED**
-   - Real-time log viewer with tabbed interface ✅
-   - Color-coded log levels (ERROR, WARN, INFO, DEBUG) ✅
-   - Log export functionality ✅
-   - Console clearing capabilities ✅
-   - Main process to renderer log forwarding ✅
+4. **Console/Logging System**
+   - Real-time log viewer with tabbed interface
+   - Color-coded log levels (ERROR, WARN, INFO, DEBUG)
+   - Log export functionality
+   - Console clearing capabilities
+   - Main process to renderer log forwarding
 
 ### Technical Requirements
 
-#### AWS CLI Integration ✅ COMPLETED
+#### AWS CLI Integration
 - **Prerequisites:** AWS CLI and Session Manager plugin must be installed
-- **Authentication:** AWS credentials configuration with profile support ✅
-- **Profile Management:** Support for multiple AWS profiles including SSO profiles ✅
+- **Authentication:** AWS credentials configuration with profile support
+- **Profile Management:** Support for multiple AWS profiles including SSO profiles
 - **Commands Integrated:**
-  - `aws ec2 describe-instances` - List instances ✅
-  - `aws ec2 start-instances` - Start instances ✅
-  - `aws ec2 stop-instances` - Stop instances ✅
-  - `aws ssm start-session` - Start Session Manager session ✅
-  - `aws ssm describe-instance-information` - Get instance info ✅
-  - `aws sts get-caller-identity` - Validate profile credentials ✅
-  - `aws configure list-profiles` - List available profiles ✅
-- **Graceful CLI Handling:** App starts even if AWS CLI is not available ✅
-- **Profile Switching:** Seamless switching between different AWS accounts ✅
+  - `aws ec2 describe-instances` - List instances
+  - `aws ec2 start-instances` - Start instances
+  - `aws ec2 stop-instances` - Stop instances
+  - `aws ssm start-session` - Start Session Manager session
+  - `aws ssm describe-instance-information` - Get instance info
+  - `aws sts get-caller-identity` - Validate profile credentials
+  - `aws configure list-profiles` - List available profiles
+- **Graceful CLI Handling:** App starts even if AWS CLI is not available
+- **Profile Switching:** Seamless switching between different AWS accounts
 
 #### UI/UX Requirements
-- **Tabbed Interface:** Instances and Console tabs ✅
+- **Tabbed Interface:** Instances and Console tabs
 - **Instance List View:** Table/grid showing EC2 instances (HTML structure ready)
 - **Instance Details Panel:** Detailed information about selected instances (HTML structure ready)
-- **Console Tab:** Real-time log viewer with controls ✅
+- **Console Tab:** Real-time log viewer with controls
 - **Session Management:** Interface for managing active sessions (pending)
 - **Port Forwarding Configuration:** Form for setting up port forwarding (pending)
 - **Status Indicators:** Visual feedback for instance states and connections (pending)
 
-#### Security Considerations ✅ IMPLEMENTED
-- **Credential Management:** Secure handling of AWS credentials ✅
-- **Session Security:** Proper session isolation and cleanup ✅
-- **Network Security:** Secure port forwarding implementation ✅
-- **Context Isolation:** Enabled by default ✅
-- **Node Integration:** Disabled for security ✅
-- **Secure IPC:** All communication through preload script ✅
+#### Security Considerations
+- **Credential Management:** Secure handling of AWS credentials
+- **Session Security:** Proper session isolation and cleanup
+- **Network Security:** Secure port forwarding implementation
+- **Context Isolation:** Enabled by default
+- **Node Integration:** Disabled for security
+- **Secure IPC:** All communication through preload script
 
 ### Development Roadmap
 
-#### Phase 1: Foundation ✅ COMPLETED
+#### Phase 1: Foundation
 - [x] Set up AWS CLI integration
 - [x] Create basic UI framework
 - [x] Implement instance listing functionality
 - [x] Set up proper project structure
 - [x] Implement configuration management
 - [x] Add logging system
-- [x] Create console/log viewer tab ✅ **NEW**
+- [x] Create console/log viewer tab
 
-#### Phase 2: Core Features (IN PROGRESS)
+#### Phase 2: Core Features
 - [x] Add start/stop instance functionality
 - [x] Implement Session Manager connection
-- [x] Create console management interface ✅ **NEW**
-- [x] **NEW: Implement EC2 instance loading and display** ✅ **JUST COMPLETED**
-- [x] **NEW: Add Refresh Instances button and functionality** ✅ **JUST COMPLETED**
-- [x] **NEW: Implement instance list rendering with status indicators** ✅ **JUST COMPLETED**
-- [x] **NEW: Add instance action buttons (Start/Stop/Connect)** ✅ **JUST COMPLETED**
-- [x] **NEW: Add instance details display** ✅ **JUST COMPLETED**
-- [x] **NEW: Implement comprehensive port forwarding system** ✅ **JUST COMPLETED**
-- [x] **NEW: Add port forwarding session management** ✅ **JUST COMPLETED**
+- [x] Create console management interface
+- [x] Implement EC2 instance loading and display
+- [x] Add Refresh Instances button and functionality
+- [x] Implement instance list rendering with status indicators
+- [x] Add instance action buttons (Start/Stop/Connect)
+- [x] Add instance details display
+- [x] Implement comprehensive port forwarding system
+- [x] Add port forwarding session management
 
-#### Phase 3: Advanced Features (PENDING)
-- [x] Add port forwarding capabilities (service level) ✅ **JUST COMPLETED**
-- [x] Implement session persistence ✅ **JUST COMPLETED**
+#### Phase 3: Advanced Features
+- [x] Add port forwarding capabilities (service level)
+- [x] Implement session persistence
 - [ ] Add configuration management UI
-- [x] Create port forwarding UI ✅ **JUST COMPLETED**
+- [x] Create port forwarding UI
 
-#### Phase 4: Polish (PENDING)
+#### Phase 4: Polish
 - [ ] Error handling and user feedback
 - [ ] Performance optimization
 - [ ] Documentation and testing
 - [ ] Cross-platform testing
 
-### Architecture Notes ✅ IMPLEMENTED
-- **Main Process:** Handles AWS CLI command execution ✅
-- **Renderer Process:** Provides the user interface with tabbed layout ✅
-- **Preload Script:** Exposes secure APIs for AWS operations ✅
-- **IPC Communication:** Used for main-renderer process communication ✅
-- **Service Layer:** AWS operations abstracted into service classes ✅
-- **Configuration:** Persistent configuration management ✅
-- **Logging:** Structured logging with file output and console display ✅
-- **Console System:** Real-time log viewing with export capabilities ✅
-- **Session Management:** Port forwarding session tracking and process management ✅
-- **Process Management:** Interactive AWS CLI session handling with proper cleanup ✅
+### Architecture Notes
+- **Main Process:** Handles AWS CLI command execution
+- **Renderer Process:** Provides the user interface with tabbed layout
+- **Preload Script:** Exposes secure APIs for AWS operations
+- **IPC Communication:** Used for main-renderer process communication
+- **Service Layer:** AWS operations abstracted into service classes
+- **Configuration:** Persistent configuration management
+- **Logging:** Structured logging with file output and console display
+- **Console System:** Real-time log viewing with export capabilities
+- **Session Management:** Port forwarding session tracking and process management
+- **Process Management:** Interactive AWS CLI session handling with proper cleanup
 
 ### Dependencies to Add (FUTURE)
 - **AWS SDK:** For programmatic AWS access (optional alternative to CLI)
@@ -190,9 +207,9 @@ electronic-session-manager/
 - **Testing Framework:** Jest or Mocha for unit testing
 - **Linting:** ESLint for code quality
 
-## Recent Updates ✅ **NEW SECTION**
+## Recent Updates
 
-### GitHub Actions CI/CD Pipeline ✅ **JUST IMPLEMENTED**
+### GitHub Actions CI/CD Pipeline
 - **Workflow File:** `.github/workflows/build.yml` - Automated multi-platform build and release pipeline
 - **Triggers:** 
   - Automatic builds on version tag pushes (e.g., `v1.0.0`)
@@ -222,7 +239,7 @@ electronic-session-manager/
   - **macOS:** `out/make/dmg/x64/*.dmg`, `out/make/zip/darwin/x64/*.zip`
   - **Linux:** `out/make/deb/x64/*.deb`, `out/make/rpm/x64/*.rpm`, `out/make/zip/linux/x64/*.zip`
 
-### Status Bar Feature ✅ **JUST IMPLEMENTED**
+### Status Bar Feature
 - **Status Bar Location:** Added at the bottom of the application with dark theme
 - **AWS CLI Status Tracking:** Real-time monitoring of AWS CLI availability with visual indicators
 - **Profile Status Display:** Shows current AWS profile and validation status
@@ -234,7 +251,7 @@ electronic-session-manager/
 - **Real-time Updates:** Automatic updates every 5 seconds for session count, event-driven updates for other statuses
 - **Error Handling:** Graceful handling of API failures and network connectivity issues
 
-### .gitignore Cleanup ✅ **JUST COMPLETED**
+### .gitignore Cleanup
 - **Removed Duplicates:** Eliminated all duplicate entries throughout the file
 - **Added Missing Patterns:** Added modern Node.js, npm, and Electron-specific patterns
 - **Enhanced Organization:** Organized into clear sections (Dependencies, Runtime, Build, OS, IDE, etc.)
@@ -244,17 +261,17 @@ electronic-session-manager/
 - **IDE Support:** Added comprehensive IDE and editor patterns
 - **File Size:** Reduced from 208 lines to ~120 lines while improving coverage
 
-### EC2 Instance Loading and Display ✅ **JUST IMPLEMENTED**
+### EC2 Instance Loading and Display
 - **Refresh Instances Button:** Manual trigger to load/check/list all available EC2 instances
 - **Real-time Instance Display:** Shows all EC2 instances with their current status
-- **Status Indicators:** Color-coded status badges (Running 🟢, Stopped 🔴, Pending 🟡, etc.)
+- **Status Indicators:** Color-coded status badges (Running, Stopped, Pending, etc.)
 - **Instance Information:** Displays instance name, type, availability zone, and status
 - **Action Buttons:** Context-aware buttons for Start/Stop/Connect based on instance state
 - **Interactive UI:** Click to select instances, hover effects, and visual feedback
 - **Error Handling:** Graceful handling of AWS CLI errors and network issues
 - **Console Integration:** All operations logged to the console tab for debugging
 
-### Instance Details Panel ✅ **NEWLY IMPLEMENTED**
+### Instance Details Panel
 - **Click-to-View Details:** Click on any instance in the sidebar to display comprehensive details on the right
 - **Comprehensive Information Display:** Shows all available instance data including:
   - **Status & Configuration:** Instance status, type, platform, and launch time
@@ -267,11 +284,11 @@ electronic-session-manager/
 - **Professional Styling:** Clean, organized layout with proper spacing and typography
 - **Real-time Updates:** Details panel updates when instances are refreshed
 
-### Port Forwarding System ✅ **NEWLY IMPLEMENTED**
+### Port Forwarding System
 - **Three Connection Options:**
-  - **🖥️ Connect via RDP:** Forwards remote port 3389 to local port 13389
-  - **💻 Connect via SSH:** Forwards remote port 22 to local port 2222
-  - **🔧 Connect using Custom ports:** User-defined local and remote ports
+  - **Connect via RDP:** Forwards remote port 3389 to local port 13389
+  - **Connect via SSH:** Forwards remote port 22 to local port 2222
+  - **Connect using Custom ports:** User-defined local and remote ports
 - **Custom Port Dialog:** Interactive form for specifying custom port mappings
 - **Input Validation:** Ensures valid port ranges (local: 1024-65535, remote: 1-65535)
 - **Success Popups:** Beautiful popup notifications showing connection details and instructions
@@ -281,7 +298,7 @@ electronic-session-manager/
 - **SSM Agent Validation:** Checks if instance has Session Manager agent before attempting connection
 - **Real-time Logging:** All port forwarding operations logged to console tab
 
-### Port Forwarding Session Management ✅ **JUST COMPLETED**
+### Port Forwarding Session Management
 - **Moved Stop Button:** Relocated from popup to instance details panel for better accessibility
 - **Session Tracking:** Implemented comprehensive session tracking in both renderer and main processes
 - **Dynamic UI Updates:** Instance details automatically refresh to show/hide stop button
@@ -291,7 +308,7 @@ electronic-session-manager/
 - **Error Handling:** Comprehensive error handling for session management operations
 - **Console Integration:** All session operations logged to console tab for debugging
 
-### AWS SSO Profile Support ✅ **NEWLY IMPLEMENTED**
+### AWS SSO Profile Support
 - **Profile Management:** Complete AWS profile support including SSO profiles
 - **Profile Detection:** Automatic detection of available profiles from AWS credentials and config files
 - **Profile Validation:** Real-time validation of profile credentials using AWS STS
@@ -314,7 +331,7 @@ electronic-session-manager/
   - **Session Persistence:** Profile selection persists across application sessions
   - **Validation System:** Tests profile validity before allowing operations
 
-### Profile Creation and Management ✅ **NEWLY IMPLEMENTED**
+### Profile Creation and Management
 - **Profile Creation UI:** Complete interface for creating new AWS profiles
 - **IAM Profile Support:** Create traditional IAM profiles with access keys
 - **SSO Profile Support:** Create AWS SSO profiles with portal configuration
@@ -339,7 +356,7 @@ electronic-session-manager/
   - **Input Sanitization:** Validation of profile names and configuration data
   - **Error Recovery:** Graceful handling of file system errors
 
-### AWS SSO Login Integration ✅ **NEWLY IMPLEMENTED**
+### AWS SSO Login Integration
 - **SSO Login UI:** Complete interface for performing AWS SSO login
 - **Profile Detection:** Automatic detection of SSO profiles vs IAM profiles
 - **Login Status Monitoring:** Real-time monitoring of SSO authentication status
@@ -364,7 +381,7 @@ electronic-session-manager/
   - **CLI Integration:** Seamless integration with AWS CLI SSO commands
 
 ### Console Tab Implementation
-- **Improved Readability:** Reduced spacing between log entries for a more compact and readable view.
+- **Improved Readability:** Reduced spacing between log entries for a more compact and readable view
 - **Real-time Log Display:** Shows logs from both main and renderer processes
 - **Color-coded Log Levels:** ERROR (red), WARN (yellow), INFO (green), DEBUG (blue)
 - **Console Controls:** Clear and export functionality
@@ -387,15 +404,45 @@ electronic-session-manager/
 - **Console Logging:** Clear status and error messages
 - **IPC Communication:** Proper error forwarding between processes
 
-## Development Guidelines ✅ IMPLEMENTED
-- Follow Electron security best practices ✅
-- Implement proper error handling for AWS operations ✅
-- Ensure cross-platform compatibility ✅
-- Maintain clean separation between main and renderer processes ✅
-- Use secure IPC communication patterns ✅
-- Structured logging for debugging ✅
-- Configuration persistence ✅
-- Real-time console monitoring ✅ **NEW**
+### Dark Mode Toggle Feature
+- **Toggle Switch Location:** Added to the header next to the profile selector for easy access
+- **Visual Design:** Modern toggle switch with moon icon and smooth animations
+- **Theme Persistence:** Dark mode preference is saved to localStorage and restored on app restart
+- **CSS Variables:** Complete theming system using CSS custom properties for consistent colors
+- **Smooth Transitions:** All UI elements transition smoothly between light and dark modes
+- **Comprehensive Coverage:** All components, dialogs, and UI elements support dark mode
+- **Color Scheme:**
+  - **Light Mode:** Clean, modern light theme with subtle shadows and borders
+  - **Dark Mode:** Professional dark theme with proper contrast ratios for readability
+- **Accessibility:** Ensures proper contrast ratios and readable text in both modes
+- **Responsive Design:** Dark mode toggle and styling work on all screen sizes
+- **Technical Implementation:**
+  - **DarkModeManager Class:** Handles toggle functionality and theme persistence
+  - **CSS Variables:** Complete color system with light/dark variants
+  - **Local Storage:** Saves user preference across sessions
+  - **Smooth Transitions:** 0.3s ease transitions for all color changes
+- **UI Components Updated:**
+  - **Header:** Gradient background adapts to theme
+  - **Sidebar:** Background, borders, and text colors
+  - **Content Area:** Background and text colors
+  - **Tabs:** Background, borders, and active states
+  - **Buttons:** All button variants with proper contrast
+  - **Dialogs:** Profile management, port forwarding, and success popups
+  - **Status Bar:** Background, borders, and text colors
+  - **Console:** Background, text, and log level colors
+  - **Instance Details:** All panels, sections, and data displays
+  - **Forms:** Input fields, labels, and validation messages
+  - **Notifications:** Background, borders, and text colors
+
+## Development Guidelines
+- Follow Electron security best practices
+- Implement proper error handling for AWS operations
+- Ensure cross-platform compatibility
+- Maintain clean separation between main and renderer processes
+- Use secure IPC communication patterns
+- Structured logging for debugging
+- Configuration persistence
+- Real-time console monitoring
 
 ## Current Status
 - **Date:** Profile creation and management implementation completed
@@ -404,68 +451,21 @@ electronic-session-manager/
 - **Next Steps:** Implement configuration management UI and advanced session features
 - **Recent Fixes:** Import path corrections, AWS CLI handling, console tab implementation, AWS SSO profile integration, profile creation and management
 
-### Port Forwarding Session Management ✅ **JUST COMPLETED**
-- **Moved Stop Button:** Relocated from popup to instance details panel for better accessibility
-- **Session Tracking:** Implemented comprehensive session tracking in both renderer and main processes
-- **Dynamic UI Updates:** Instance details automatically refresh to show/hide stop button
-- **Process Management:** Proper handling of interactive AWS CLI sessions with graceful termination
-- **User Experience:** Persistent popups that stay open until user dismisses them
-- **Visual Design:** Red gradient styling for stop button to indicate destructive action
-- **Error Handling:** Comprehensive error handling for session management operations
-- **Console Integration:** All session operations logged to console tab for debugging
-
-### Status Bar Feature ✅ **NEW SECTION**
-
-The status bar is located at the bottom of the application and provides real-time information about:
-
-#### Status Indicators
-- **AWS CLI Status:** Shows whether AWS CLI is available, unavailable, or checking
-  - Green indicator: AWS CLI is available and working
-  - Red indicator: AWS CLI is not found or not working
-  - Yellow indicator: Checking AWS CLI availability
-  - Text shows "Available", "Not Found", or "Error"
-
-- **Profile Status:** Shows the current AWS profile and its validity
-  - Green indicator: Profile is valid and authenticated
-  - Red indicator: Profile is invalid or not authenticated
-  - Text shows profile name or "None" if no profile selected
-
-- **Active Sessions:** Shows the number of active port forwarding sessions
-  - Updates in real-time as sessions start and stop
-  - Shows "0" when no sessions are active
-
-- **App Status:** Shows the current application state
-  - Green indicator: App is ready and idle
-  - Yellow indicator: App is busy (loading instances, starting sessions, etc.)
-  - Red indicator: App encountered an error
-  - Text shows "Ready", "Loading...", "Starting port forwarding...", etc.
-
-- **Last Update:** Shows when instances were last refreshed
-  - Updates automatically when instances are loaded
-  - Shows "Never" if instances haven't been loaded yet
-
-#### Technical Implementation
-- **Real-time Updates:** Status updates automatically every 5 seconds for session count
-- **Event-driven Updates:** Profile status, app status, and last update time update based on user actions
-- **Responsive Design:** Status bar adapts to different screen sizes
-- **Error Handling:** Graceful handling of API failures and network issues
-- **Integration:** Seamlessly integrated with existing profile management and session tracking
-
-#### Status Bar Management
+### Status Bar Management
 - **Initialization:** Status bar initializes on app startup with default values
 - **AWS CLI Check:** Automatically checks AWS CLI availability on startup
 - **Profile Integration:** Updates when profiles are switched or validated
 - **Session Tracking:** Updates when port forwarding sessions start or stop
 - **App State Management:** Updates during loading operations and error states
 
-### Recent Build Pipeline Fixes ✅ **JUST IMPLEMENTED**
+### Recent Build Pipeline Fixes
 - **Linux Build Issue:** Fixed executable name mismatch causing deb/rpm build failures
 - **Root Cause:** Product name "Electronic Session Manager" vs executable name "electronic-session-manager"
 - **Solution:** Added `executableName: 'electronic-session-manager'` to forge.config.js packagerConfig
 - **Additional Config:** Enhanced deb and rpm maker configurations with maintainer and homepage info
 - **Expected Result:** Linux builds should now complete successfully for both .deb and .rpm packages
 
-### Release Pipeline Fixes ✅ **JUST IMPLEMENTED**
+### Release Pipeline Fixes
 - **403 Forbidden Error:** Added `permissions: contents: write` to workflow for release creation
 - **File Pattern Issues:** Updated artifact upload paths to include more file types and be more flexible
 - **Artifact Download:** Added explicit download path configuration and debugging output
