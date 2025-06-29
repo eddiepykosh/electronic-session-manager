@@ -22,7 +22,7 @@ export default class ConnectionManager {
           remotePort: 3389
         });
         
-        this.showPortForwardingSuccess('RDP', instanceId, 13389, 3389, result.sessionId);
+        this.uiManager.showConnectionSuccess('RDP', instanceId, 13389, 3389);
         this.statusBarManager.updateStatusBar({ activeSessions: this.activeSessions.size });
         app.refreshInstanceDetails(instanceId);
       }
@@ -47,7 +47,7 @@ export default class ConnectionManager {
           remotePort: 22
         });
         
-        this.showPortForwardingSuccess('SSH', instanceId, 2222, 22, result.sessionId);
+        this.uiManager.showConnectionSuccess('SSH', instanceId, 2222, 22);
         this.statusBarManager.updateStatusBar({ activeSessions: this.activeSessions.size });
         app.refreshInstanceDetails(instanceId);
       }
@@ -120,7 +120,7 @@ export default class ConnectionManager {
           activeSessions: this.activeSessions.size
         });
         
-        this.showPortForwardingSuccess('Custom Port Forwarding', instanceId, localPort, remotePort, result.sessionId);
+        this.uiManager.showConnectionSuccess('Custom Port Forwarding', instanceId, localPort, remotePort);
         this.uiManager.closeCustomPortDialog();
         app.refreshInstanceDetails(instanceId);
       } else {
@@ -128,6 +128,7 @@ export default class ConnectionManager {
           appStatus: 'error',
           appStatusText: 'Error'
         });
+        this.consoleManager.addConsoleEntry('ERROR', `Error starting port forwarding: ${result.error || 'Failed to start port forwarding'}`, 'error');
         this.uiManager.showError(result.error || 'Failed to start port forwarding');
       }
     } catch (error) {
@@ -171,6 +172,7 @@ export default class ConnectionManager {
           appStatus: 'error',
           appStatusText: 'Error'
         });
+        this.consoleManager.addConsoleEntry('ERROR', `Error stopping port forwarding: ${result.error || 'Failed to stop port forwarding'}`, 'error');
         this.uiManager.showError(result.error || 'Failed to stop port forwarding');
       }
     } catch (error) {
@@ -184,43 +186,9 @@ export default class ConnectionManager {
   }
 
   showPortForwardingSuccess(connectionType, instanceId, localPort, remotePort, sessionId) {
-    const successPopup = document.createElement('div');
-    successPopup.className = 'success-popup';
-    
-    let connectionInstructions = '';
-    if (connectionType === 'RDP') {
-      connectionInstructions = `Connect to: localhost:${localPort}`;
-    } else if (connectionType === 'SSH') {
-      connectionInstructions = `SSH to: localhost -p ${localPort}`;
-    } else {
-      connectionInstructions = `Connect to: localhost:${localPort}`;
-    }
-    
-    successPopup.innerHTML = `
-      <div class="success-content">
-        <div class="success-header">
-          <span class="success-icon">✅</span>
-          <h3>Port Forwarding Started</h3>
-        </div>
-        <div class="success-details">
-          <p><strong>Instance:</strong> ${instanceId}</p>
-          <p><strong>Connection Type:</strong> ${connectionType}</p>
-          <p><strong>Port Mapping:</strong> localhost:${localPort} → remote:${remotePort}</p>
-          ${sessionId ? `<p><strong>Session ID:</strong> <code>${sessionId}</code></p>` : ''}
-          <div class="connection-instructions">
-            <p><strong>To connect:</strong></p>
-            <code>${connectionInstructions}</code>
-          </div>
-          <div class="session-info">
-            <p><strong>Status:</strong> <span class="status-running">🟢 Active</span></p>
-            <p class="session-note">The port forwarding session is now active. You can connect using the instructions above.</p>
-          </div>
-        </div>
-        <button class="btn-primary" onclick="app.closeSuccessPopup()">OK</button>
-      </div>
-    `;
-    
-    document.body.appendChild(successPopup);
+    // This method is now replaced by uiManager.showConnectionSuccess
+    // It's kept here to avoid breaking any potential calls, but should be considered deprecated.
+    this.uiManager.showConnectionSuccess(connectionType, instanceId, localPort, remotePort);
   }
 
   getPortForwardingActions(instanceId) {

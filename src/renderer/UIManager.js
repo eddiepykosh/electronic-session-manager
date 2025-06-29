@@ -26,23 +26,95 @@ export default class UIManager {
     return div.innerHTML;
   }
 
+  showNotification(message, type = 'info', duration = 5000) {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-header">
+            <span class="notification-title">${type === 'success' ? '✅' : '❌'} ${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+            <button class="notification-close-btn">&times;</button>
+        </div>
+        <div class="notification-content">
+            <p>${message}</p>
+        </div>
+    `;
+
+    container.appendChild(notification);
+
+    // Trigger the show animation
+    setTimeout(() => notification.classList.add('show'), 10);
+
+    const close = () => {
+      notification.classList.remove('show');
+      notification.classList.add('hide');
+      setTimeout(() => notification.remove(), 500);
+    };
+
+    const timer = setTimeout(close, duration);
+    
+    notification.querySelector('.notification-close-btn').addEventListener('click', () => {
+      clearTimeout(timer);
+      close();
+    });
+  }
+
   showError(message) {
-    // TODO: Implement a better error display, e.g., a toast notification
-    console.error(message);
-    alert(`ERROR: ${message}`); // Simple alert for now
+    this.showNotification(message, 'error');
   }
 
   showSuccess(message) {
-    // TODO: Implement a better success display, e.g., a toast notification
-    console.log(message);
-    alert(message); // Simple alert for now
+    this.showNotification(message, 'success');
+  }
+
+  showConnectionSuccess(connectionType, instanceId, localPort, remotePort) {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+
+    let connectionInstructions = '';
+    if (connectionType === 'RDP') {
+      connectionInstructions = `Connect to: <code>localhost:${localPort}</code>`;
+    } else if (connectionType === 'SSH') {
+      connectionInstructions = `SSH to: <code>localhost -p ${localPort}</code>`;
+    } else {
+      connectionInstructions = `Connect to: <code>localhost:${localPort}</code>`;
+    }
+
+    const notification = document.createElement('div');
+    notification.className = 'notification success';
+    notification.innerHTML = `
+      <div class="notification-header">
+        <span class="notification-title">✅ Port Forwarding Started</span>
+        <button class="notification-close-btn">&times;</button>
+      </div>
+      <div class="notification-content">
+        <p><strong>Instance:</strong> ${instanceId}</p>
+        <p><strong>Type:</strong> ${connectionType}</p>
+        <p><strong>Mapping:</strong> localhost:${localPort} → remote:${remotePort}</p>
+        <p>${connectionInstructions}</p>
+      </div>
+    `;
+    
+    container.appendChild(notification);
+
+    setTimeout(() => notification.classList.add('show'), 10);
+
+    const close = () => {
+      notification.classList.remove('show');
+      notification.classList.add('hide');
+      setTimeout(() => notification.remove(), 500);
+    };
+
+    // This type of notification stays until closed
+    notification.querySelector('.notification-close-btn').addEventListener('click', close);
   }
 
   closeSuccessPopup() {
-    const popup = document.querySelector('.success-popup');
-    if (popup) {
-      popup.remove();
-    }
+    // This method is no longer needed for the new notification system,
+    // but we keep it to prevent errors from old calls if any exist.
+    // The new notifications close themselves.
   }
 
   closeCustomPortDialog() {
