@@ -87,11 +87,16 @@ export default class ProfileManager {
       });
       const profileInfo = await window.electronAPI.setCurrentProfile(profile);
       this.updateProfileStatus(profileInfo);
-      await this.instanceManager.loadInstances();
+      
+      // Don't automatically load instances - let user do it manually
       if (profileInfo.valid) {
         this.consoleManager.addConsoleEntry('SUCCESS', `Successfully switched to profile: ${profile}`, 'info');
+        this.consoleManager.addConsoleEntry('INFO', `Profile ${profile} is ready. Click "Refresh Instances" to load your EC2 instances.`, 'info');
+        // Update the instance list to show the profile is ready
+        this.instanceManager.displayProfileReadyMessage();
       } else {
         this.consoleManager.addConsoleEntry('WARNING', `Profile ${profile} set but validation failed: ${profileInfo.error}`, 'warn');
+        this.instanceManager.displayNoProfileMessage();
       }
     } catch (error) {
       this.consoleManager.addConsoleEntry('ERROR', `Failed to switch profile: ${error.message}`, 'error');
@@ -100,6 +105,7 @@ export default class ProfileManager {
         valid: false,
         error: error.message
       });
+      this.instanceManager.displayNoProfileMessage();
     }
   }
 

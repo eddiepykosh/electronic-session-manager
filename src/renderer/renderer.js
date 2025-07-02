@@ -8,6 +8,7 @@ import ConnectionManager from './ConnectionManager.js';
 import InstanceManager from './InstanceManager.js';
 import ProfileManager from './ProfileManager.js';
 import DarkModeManager from './DarkModeManager.js';
+import SessionManager from './SessionManager.js';
 
 class ElectronicSessionManager {
   constructor() {
@@ -16,6 +17,7 @@ class ElectronicSessionManager {
     this.consoleManager = new ConsoleManager(this.uiManager);
     this.statusBarManager = new StatusBarManager();
     this.connectionManager = new ConnectionManager(this.uiManager, this.consoleManager, this.statusBarManager);
+    this.sessionManager = new SessionManager(this.connectionManager, this.uiManager, this.consoleManager);
     this.instanceManager = new InstanceManager(this.uiManager, this.consoleManager, this.connectionManager, this.statusBarManager);
     this.profileManager = new ProfileManager(this.uiManager, this.consoleManager, this.statusBarManager, this.instanceManager);
     
@@ -35,6 +37,9 @@ class ElectronicSessionManager {
   connectViaCustom(instanceId) { this.connectionManager.connectViaCustom(instanceId); }
   startCustomPortForwarding(instanceId) { this.connectionManager.startCustomPortForwarding(instanceId); }
   stopPortForwarding(instanceId) { this.connectionManager.stopPortForwarding(instanceId); }
+  
+  // SessionManager delegations
+  stopSessionFromDialog(instanceId) { this.sessionManager.stopSessionFromDialog(instanceId); }
   
   // UIManager delegations
   closeCustomPortDialog() { this.uiManager.closeCustomPortDialog(); }

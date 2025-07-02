@@ -121,6 +121,42 @@ const setupIPCHandlers = () => {
     }
   });
 
+  ipcMain.handle('aws:find-orphaned-sessions', async () => {
+    try {
+      sendLogToRenderer('debug', 'Checking for orphaned sessions...');
+      const result = await awsService.findOrphanedSessions();
+      sendLogToRenderer('info', `Found ${result.length} orphaned session(s)`);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to find orphaned sessions: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('aws:force-kill-orphaned-sessions', async () => {
+    try {
+      sendLogToRenderer('info', 'Force killing orphaned sessions...');
+      const result = await awsService.forceKillOrphanedSessions();
+      sendLogToRenderer('info', result.message);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to force kill orphaned sessions: ${error.message}`);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('aws:force-kill-all-session-manager-plugins', async () => {
+    try {
+      sendLogToRenderer('info', 'Force killing all session-manager-plugin processes...');
+      const result = await awsService.forceKillAllSessionManagerPlugins();
+      sendLogToRenderer(result.success ? 'info' : 'error', result.message);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to force kill all session-manager-plugin processes: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+  });
+
   // AWS Profile operations
   ipcMain.handle('aws:get-profiles', async () => {
     try {

@@ -1,10 +1,11 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const {
   execAsync,
   ensureAWSCLI,
   buildAWSCommand,
   getProfileRegion,
 } = require('./common');
+const os = require('os');
 
 async function getInstanceInformation(profile) {
   try {
@@ -78,6 +79,30 @@ async function startPortForwarding(instanceId, localPort, remotePort, profile) {
       
       let sessionId = null;
       let output = '';
+      let pluginPid = null;
+      
+      // On Windows, try to find the session-manager-plugin child process
+      if (os.platform() === 'win32') {
+        child.stdout.on('data', () => {
+          // After a short delay, try to find the plugin child process
+          setTimeout(() => {
+            try {
+              // Use PowerShell to find the child process
+              const psCmd = `powershell -Command "Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq ${child.pid} -and $_.Name -eq 'session-manager-plugin.exe' } | Select-Object -ExpandProperty ProcessId"`;
+              const result = execSync(psCmd).toString();
+              const lines = result.split('\n').map(l => l.trim()).filter(Boolean);
+              for (const line of lines) {
+                if (/^\d+$/.test(line)) {
+                  pluginPid = parseInt(line, 10);
+                  console.log('Found session-manager-plugin.exe PID:', pluginPid);
+                }
+              }
+            } catch (e) {
+              console.warn('Could not find session-manager-plugin child process:', e.message);
+            }
+          }, 2000); // Wait 2s for child to spawn
+        });
+      }
       
       child.stdout.on('data', (data) => {
         const outputChunk = data.toString();
@@ -96,7 +121,8 @@ async function startPortForwarding(instanceId, localPort, remotePort, profile) {
               instanceId: instanceId,
               localPort: localPort,
               remotePort: remotePort,
-              startTime: new Date()
+              startTime: new Date(),
+              pluginPid: pluginPid // Track plugin PID if found
             });
           }, 1000);
         }
@@ -140,7 +166,7 @@ async function startPortForwarding(instanceId, localPort, remotePort, profile) {
   }
 }
 
-function stopPortForwarding(sessionToStop) {
+async function stopPortForwarding(sessionToStop) {
   try {
     console.log('Stopping port forwarding for instance:', sessionToStop.instanceId, 'session:', sessionToStop.sessionId);
     
@@ -148,24 +174,81 @@ function stopPortForwarding(sessionToStop) {
       throw new Error(`No active port forwarding session found.`);
     }
     
+    let processTerminated = false;
+    let portReleased = false;
+    
+    // Step 1: Terminate the process
     if (sessionToStop.process && !sessionToStop.process.killed) {
+      console.log('Sending SIGTERM to port forwarding process...');
       sessionToStop.process.kill('SIGTERM');
-      console.log('Sent SIGTERM to port forwarding process');
       
-      setTimeout(() => {
-        if (!sessionToStop.process.killed) {
-          sessionToStop.process.kill('SIGKILL');
-          console.log('Sent SIGKILL to port forwarding process');
-        }
-      }, 2000);
+      // Wait for graceful termination
+      processTerminated = await waitForProcessTermination(sessionToStop.process, 5000);
+      
+      if (!processTerminated) {
+        console.log('Process did not terminate gracefully, sending SIGKILL...');
+        sessionToStop.process.kill('SIGKILL');
+        processTerminated = await waitForProcessTermination(sessionToStop.process, 3000);
+      }
+    } else {
+      processTerminated = true; // Process already terminated or doesn't exist
     }
+    
+    // Step 1b: On Windows, try to kill the session-manager-plugin child if tracked
+    if (os.platform() === 'win32') {
+      let pluginPidToKill = sessionToStop.pluginPid;
+      // If not tracked, try to find it now
+      if (!pluginPidToKill && sessionToStop.process && sessionToStop.process.pid) {
+        try {
+          const psCmd = `powershell -Command "Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq ${sessionToStop.process.pid} -and $_.Name -eq 'session-manager-plugin.exe' } | Select-Object -ExpandProperty ProcessId"`;
+          const result = execSync(psCmd).toString();
+          const lines = result.split('\n').map(l => l.trim()).filter(Boolean);
+          for (const line of lines) {
+            if (/^\d+$/.test(line)) {
+              pluginPidToKill = parseInt(line, 10);
+              console.log('Dynamically found session-manager-plugin.exe PID at stop time:', pluginPidToKill);
+            }
+          }
+        } catch (e) {
+          console.warn('Could not dynamically find session-manager-plugin child process at stop time:', e.message);
+        }
+      }
+      if (pluginPidToKill) {
+        try {
+          execSync(`taskkill /F /PID ${pluginPidToKill}`);
+          console.log('Killed session-manager-plugin.exe with PID', pluginPidToKill);
+        } catch (e) {
+          console.warn('Failed to kill session-manager-plugin.exe:', e.message);
+        }
+      }
+    }
+    
+    // Step 2: Verify port is released
+    if (sessionToStop.localPort) {
+      portReleased = await verifyPortReleased(sessionToStop.localPort);
+    } else {
+      portReleased = true; // No port to verify
+    }
+    
+    // Step 3: Validate termination
+    if (!processTerminated) {
+      throw new Error('Failed to terminate port forwarding process');
+    }
+    
+    if (!portReleased) {
+      console.warn('Warning: Port may still be in use after process termination');
+    }
+    
+    console.log('Port forwarding session successfully terminated');
     
     return {
       success: true,
       instanceId: sessionToStop.instanceId,
       sessionId: sessionToStop.sessionId,
       message: `Port forwarding stopped for instance ${sessionToStop.instanceId}`,
-      stoppedAt: new Date()
+      stoppedAt: new Date(),
+      processTerminated,
+      portReleased
     };
     
   } catch (error) {
@@ -174,9 +257,158 @@ function stopPortForwarding(sessionToStop) {
   }
 }
 
+function waitForProcessTermination(process, timeoutMs) {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    
+    const checkTermination = () => {
+      if (process.killed) {
+        console.log('Process terminated successfully');
+        resolve(true);
+        return;
+      }
+      
+      if (Date.now() - startTime > timeoutMs) {
+        console.log('Process termination timeout');
+        resolve(false);
+        return;
+      }
+      
+      setTimeout(checkTermination, 100);
+    };
+    
+    checkTermination();
+  });
+}
+
+async function verifyPortReleased(port, retries = 5, delayMs = 500) {
+  try {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+
+    let command;
+    if (process.platform === 'win32') {
+      command = `netstat -an | findstr :${port}`;
+    } else {
+      command = `lsof -i :${port}`;
+    }
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const { stdout } = await execAsync(command);
+        const isPortInUse = stdout.trim().length > 0;
+        if (!isPortInUse) {
+          console.log(`Port ${port} is available (attempt ${attempt})`);
+          return true;
+        } else {
+          console.log(`Port ${port} is still in use (attempt ${attempt})`);
+        }
+      } catch (error) {
+        // If command fails, it usually means port is not in use
+        console.log(`Port ${port} is available (netstat/findstr returned no matches, which is expected if the port is free) (attempt ${attempt})`);
+        return true;
+      }
+      // Wait before next attempt
+      if (attempt < retries) {
+        await new Promise(res => setTimeout(res, delayMs));
+      }
+    }
+    // After all retries, port is still in use
+    return false;
+  } catch (error) {
+    console.error('Error verifying port release:', error);
+    return false;
+  }
+}
+
+async function findOrphanedSessions() {
+  try {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    let command;
+    if (process.platform === 'win32') {
+      command = 'tasklist /FI "IMAGENAME eq aws.exe" /FO CSV';
+    } else {
+      command = 'ps aux | grep aws | grep -v grep';
+    }
+    
+    try {
+      const { stdout } = await execAsync(command);
+      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      
+      const orphanedProcesses = [];
+      for (const line of lines) {
+        if (line.includes('ssm') && line.includes('start-session')) {
+          orphanedProcesses.push(line);
+        }
+      }
+      
+      return orphanedProcesses;
+    } catch (error) {
+      console.log('No orphaned AWS processes found or unable to check');
+      return [];
+    }
+  } catch (error) {
+    console.error('Error finding orphaned sessions:', error);
+    return [];
+  }
+}
+
+async function forceKillOrphanedSessions() {
+  try {
+    const orphanedProcesses = await findOrphanedSessions();
+    
+    if (orphanedProcesses.length === 0) {
+      return { success: true, message: 'No orphaned sessions found' };
+    }
+    
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    let command;
+    if (process.platform === 'win32') {
+      command = 'taskkill /F /IM aws.exe';
+    } else {
+      command = 'pkill -f "aws.*ssm.*start-session"';
+    }
+    
+    await execAsync(command);
+    
+    return {
+      success: true,
+      message: `Force killed ${orphanedProcesses.length} orphaned session(s)`,
+      killedCount: orphanedProcesses.length
+    };
+  } catch (error) {
+    console.error('Error force killing orphaned sessions:', error);
+    throw new Error(`Failed to force kill orphaned sessions: ${error.message}`);
+  }
+}
+
+async function forceKillAllSessionManagerPlugins() {
+  try {
+    if (os.platform() === 'win32') {
+      execSync('taskkill /F /IM session-manager-plugin.exe');
+      return { success: true, message: 'Killed all session-manager-plugin.exe processes' };
+    } else {
+      execSync('pkill -f session-manager-plugin');
+      return { success: true, message: 'Killed all session-manager-plugin processes' };
+    }
+  } catch (error) {
+    return { success: false, message: `Failed to kill all session-manager-plugin processes: ${error.message}` };
+  }
+}
+
 module.exports = {
   getInstanceInformation,
   startSession,
   startPortForwarding,
   stopPortForwarding,
+  findOrphanedSessions,
+  forceKillOrphanedSessions,
+  forceKillAllSessionManagerPlugins,
 }; 

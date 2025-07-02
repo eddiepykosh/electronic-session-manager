@@ -35,6 +35,7 @@ electronic-session-manager/
     │   ├── ProfileManager.js # AWS profile management
     │   ├── ConsoleManager.js # Console/log viewer management
     │   ├── ConnectionManager.js # Port forwarding management
+    │   ├── SessionManager.js # Session management dialog
     │   ├── StatusBarManager.js # Status bar management
     │   └── DarkModeManager.js # Dark mode toggle functionality
     ├── preload/            # Preload scripts
@@ -74,7 +75,7 @@ electronic-session-manager/
 - **Renderer Process (`src/renderer/index.html`):** Tabbed interface with Instances and Console tabs, refresh instances button, status bar
 - **Renderer Process (`src/renderer/renderer.js`):** EC2 instance loading and display functionality, instance details panel, status bar management
 - **Preload Script (`src/preload/preload.js`):** Complete API exposure including log message handling, AWS CLI check functionality
-- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, instance list styling, comprehensive instance details panel styling, status bar styling with responsive design
+- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, instance list styling, comprehensive instance details panel styling, status bar styling with responsive design, profile selection message styling
 - **AWS Services:**
   - `src/services/awsService.js`: Main AWS CLI integration with graceful CLI availability handling
   - `src/services/aws/ec2Service.js`: EC2 instance operations
@@ -85,6 +86,7 @@ electronic-session-manager/
 - **Logging (`src/utils/logger.js`):** Structured logging utility with file output support
 - **Console Tab:** Real-time log viewer with export functionality
 - **Status Bar:** Real-time status tracking for AWS CLI, profiles, active sessions, app status, and last update time
+- **Profile Selection:** Manual profile selection required before instance loading - no auto-connection on app startup
 
 ### Build Configuration
 - **Forge Config:** Configured for multiple platforms (Windows, macOS, Linux)
@@ -125,6 +127,7 @@ electronic-session-manager/
 - **Prerequisites:** AWS CLI and Session Manager plugin must be installed
 - **Authentication:** AWS credentials configuration with profile support
 - **Profile Management:** Support for multiple AWS profiles including SSO profiles
+- **Profile Selection:** Manual profile selection required - no automatic connection on app startup
 - **Commands Integrated:**
   - `aws ec2 describe-instances` - List instances
   - `aws ec2 start-instances` - Start instances
@@ -175,6 +178,7 @@ electronic-session-manager/
 - [x] Add instance details display
 - [x] Implement comprehensive port forwarding system
 - [x] Add port forwarding session management
+- [x] Implement manual profile selection - no auto-connection on startup
 
 #### Phase 3: Advanced Features
 - [x] Add port forwarding capabilities (service level)
@@ -203,6 +207,9 @@ electronic-session-manager/
 ### Recent Fixes
 - **Custom Portforward Dialog Issue:** Fixed the custom port forwarding dialog not appearing when clicked. The issue was that the dialog was created with `display: none` by default and the `.active` class was never added to make it visible. Fixed by adding `customPortDialog.classList.add('active')` in the `connectViaCustom` method and updating the close method to properly handle the animation.
 - **AWS Region Configuration Issue:** Fixed port forwarding and EC2 operations failing due to missing region specification. Added `getProfileRegion()` function to extract region from AWS profile configuration and updated `buildAWSCommand()` to automatically include region parameter in all AWS CLI commands. This resolves the "You must specify a region" error that was occurring during port forwarding sessions.
+- **Session Management Enhancement:** Added clickable status bar for active sessions with comprehensive session management dialog. Users can now click on the "Active Sessions" count in the status bar to view all active port forwarding sessions, see session details (instance ID, ports, start time, duration), and stop sessions directly from the dialog.
+- **Session Termination Validation:** Enhanced session termination with comprehensive validation. Added process termination verification, port release checking, timeout handling, and detailed feedback. Users now receive confirmation that sessions are actually terminated and ports are released. Added orphaned session detection and force cleanup capabilities for better session management.
+- **Session Manager Bug Fixes:** Fixed session termination errors in the Session Manager dialog. Resolved issues with undefined properties in termination results, session key mismatches between AWS service and ConnectionManager, and UI refresh problems. Added debugging capabilities and refresh button for better session management troubleshooting.
 - **Process Management:** Interactive AWS CLI session handling with proper cleanup
 
 ### Dependencies to Add (FUTURE)

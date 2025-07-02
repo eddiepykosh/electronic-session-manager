@@ -6,13 +6,42 @@ export default class InstanceManager {
     this.statusBarManager = statusBarManager;
     this.instances = [];
     this.setupInstanceControls();
-    this.loadInstances();
+    // Don't auto-load instances - wait for user to select profile and manually load
+    this.displayNoProfileMessage();
   }
 
   setupInstanceControls() {
     const refreshButton = document.getElementById('refresh-instances');
     if (refreshButton) {
       refreshButton.addEventListener('click', () => this.loadInstances());
+    }
+  }
+
+  displayNoProfileMessage() {
+    const instanceList = document.getElementById('instance-list');
+    if (instanceList) {
+      instanceList.innerHTML = `
+        <div class="no-profile-message">
+          <div class="message-icon">🔐</div>
+          <h3>Select an AWS Profile</h3>
+          <p>Please select an AWS profile from the dropdown above to load your EC2 instances.</p>
+          <p class="message-hint">The app will not automatically connect to any profile until you make a selection.</p>
+        </div>
+      `;
+    }
+  }
+
+  displayProfileReadyMessage() {
+    const instanceList = document.getElementById('instance-list');
+    if (instanceList) {
+      instanceList.innerHTML = `
+        <div class="profile-ready-message">
+          <div class="message-icon">✅</div>
+          <h3>Profile Ready</h3>
+          <p>Your AWS profile is ready. Click the "Refresh Instances" button above to load your EC2 instances.</p>
+          <p class="message-hint">No instances will be loaded until you manually refresh.</p>
+        </div>
+      `;
     }
   }
 

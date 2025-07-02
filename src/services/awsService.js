@@ -134,11 +134,23 @@ class AWSService {
       let sessionToStop = null;
       let sessionKey = null;
       
+      // First try to find by sessionId match
       for (const [key, session] of this.activeSessions.entries()) {
-        if (session.instanceId === instanceId && session.sessionId === sessionId) {
+        if (session.sessionId === sessionId) {
           sessionToStop = session;
           sessionKey = key;
           break;
+        }
+      }
+      
+      // If not found by sessionId, try to find by instanceId
+      if (!sessionToStop) {
+        for (const [key, session] of this.activeSessions.entries()) {
+          if (session.instanceId === instanceId) {
+            sessionToStop = session;
+            sessionKey = key;
+            break;
+          }
         }
       }
       
@@ -146,7 +158,7 @@ class AWSService {
         throw new Error(`No active port forwarding session found for instance ${instanceId} with session ID ${sessionId}`);
       }
       
-      const result = ssmService.stopPortForwarding(sessionToStop);
+      const result = await ssmService.stopPortForwarding(sessionToStop);
       
       this.activeSessions.delete(sessionKey);
       
@@ -156,6 +168,20 @@ class AWSService {
       console.error('Error stopping port forwarding:', error);
       throw new Error(`Failed to stop port forwarding: ${error.message}`);
     }
+  }
+
+  async findOrphanedSessions() {
+    await this.ensureAWSCLI();
+    return ssmService.findOrphanedSessions();
+  }
+
+  async forceKillOrphanedSessions() {
+    await this.ensureAWSCLI();
+    return ssmService.forceKillOrphanedSessions();
+  }
+
+  async forceKillAllSessionManagerPlugins() {
+    return ssmService.forceKillAllSessionManagerPlugins();
   }
 }
 

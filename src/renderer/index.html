@@ -103,8 +103,9 @@
             </div>
             <div class="status-item">
               <span class="status-label">Active Sessions:</span>
-              <span id="active-sessions-status" class="status-value">
+              <span id="active-sessions-status" class="status-value clickable">
                 <span class="status-text">0</span>
+                <span class="status-icon">🔗</span>
               </span>
             </div>
           </div>
@@ -239,6 +240,33 @@
             <div id="existing-profiles-list" class="profiles-list">
               <!-- Profiles will be populated here -->
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Session Management Dialog -->
+    <div id="session-management-dialog" class="session-dialog">
+      <div class="session-dialog-content">
+        <div class="session-dialog-header">
+          <h2>🔗 Active Port Forwarding Sessions</h2>
+          <button id="close-session-dialog" class="btn-close">×</button>
+        </div>
+        
+        <div class="session-dialog-body">
+          <div id="active-sessions-list" class="sessions-list">
+            <!-- Active sessions will be populated here -->
+          </div>
+          
+          <div id="no-sessions-message" class="no-sessions-message">
+            <p>No active port forwarding sessions</p>
+          </div>
+          
+          <div class="session-dialog-actions">
+            <button id="refresh-sessions-list" class="btn-secondary">🔄 Refresh List</button>
+            <button id="check-orphaned-sessions" class="btn-secondary">🔍 Check for Orphaned Sessions</button>
+            <button id="force-cleanup-sessions" class="btn-secondary">🧹 Force Cleanup All Sessions</button>
+            <button id="force-kill-all-plugins" class="btn-secondary">💀 Force Kill All Session Manager Plugin Processes</button>
           </div>
         </div>
       </div>

@@ -6,6 +6,11 @@ export default class ConnectionManager {
     this.activeSessions = new Map();
   }
 
+  // Helper to generate a unique session key
+  getSessionKey(instanceId, localPort, remotePort) {
+    return `${instanceId}-${localPort}-${remotePort}`;
+  }
+
   // Called from a delegated method on the main app object
   async connectViaRDP(instanceId) {
     try {
@@ -15,11 +20,14 @@ export default class ConnectionManager {
         const result = await window.electronAPI.startPortForwarding(instanceId, 13389, 3389);
         this.consoleManager.addConsoleEntry('System', `RDP connection started for instance ${instanceId}`, 'info');
         
-        this.activeSessions.set(instanceId, {
+        const key = this.getSessionKey(instanceId, 13389, 3389);
+        this.activeSessions.set(key, {
           sessionId: result.sessionId,
           connectionType: 'RDP',
           localPort: 13389,
-          remotePort: 3389
+          remotePort: 3389,
+          startTime: new Date(),
+          instanceId: instanceId
         });
         
         this.uiManager.showConnectionSuccess('RDP', instanceId, 13389, 3389);
@@ -40,11 +48,14 @@ export default class ConnectionManager {
         const result = await window.electronAPI.startPortForwarding(instanceId, 2222, 22);
         this.consoleManager.addConsoleEntry('System', `SSH connection started for instance ${instanceId}`, 'info');
         
-        this.activeSessions.set(instanceId, {
+        const key = this.getSessionKey(instanceId, 2222, 22);
+        this.activeSessions.set(key, {
           sessionId: result.sessionId,
           connectionType: 'SSH',
           localPort: 2222,
-          remotePort: 22
+          remotePort: 22,
+          startTime: new Date(),
+          instanceId: instanceId
         });
         
         this.uiManager.showConnectionSuccess('SSH', instanceId, 2222, 22);
@@ -109,11 +120,13 @@ export default class ConnectionManager {
       const result = await window.electronAPI.startPortForwarding(instanceId, parseInt(localPort), parseInt(remotePort));
       
       if (result.success) {
-        this.activeSessions.set(instanceId, {
+        const key = this.getSessionKey(instanceId, localPort, remotePort);
+        this.activeSessions.set(key, {
           sessionId: result.sessionId,
           localPort: localPort,
           remotePort: remotePort,
-          startTime: new Date()
+          startTime: new Date(),
+          instanceId: instanceId
         });
         
         this.statusBarManager.updateStatusBar({ 
@@ -143,47 +156,55 @@ export default class ConnectionManager {
     }
   }
 
-  async stopPortForwarding(instanceId) {
-    try {
-      const session = this.activeSessions.get(instanceId);
-      if (!session) {
-        this.uiManager.showError('No active session found for this instance');
-        return;
-      }
-      
-      this.statusBarManager.updateStatusBar({ 
-        appStatus: 'busy',
-        appStatusText: 'Stopping session...'
+  async stopPortForwarding(instanceId, localPort, remotePort) {
+    // Find the session key
+    let key = null;
+    let session = null;
+    console.log('Attempting to stop session:', { instanceId, localPort, remotePort });
+    for (const [k, s] of this.activeSessions.entries()) {
+      console.log('Checking session:', {
+        key: k,
+        sInstanceId: s.instanceId,
+        sLocalPort: s.localPort,
+        sRemotePort: s.remotePort
       });
-      
-      const result = await window.electronAPI.stopPortForwarding(instanceId, session.sessionId);
-      
-      if (result.success) {
-        this.activeSessions.delete(instanceId);
-        
-        this.statusBarManager.updateStatusBar({ 
-          appStatus: 'ready',
-          appStatusText: 'Ready',
-          activeSessions: this.activeSessions.size
-        });
-        
-        this.uiManager.showSuccess(`Port forwarding stopped for instance ${instanceId}`);
-        app.refreshInstanceDetails(instanceId);
-      } else {
-        this.statusBarManager.updateStatusBar({ 
-          appStatus: 'error',
-          appStatusText: 'Error'
-        });
-        this.consoleManager.addConsoleEntry('ERROR', `Error stopping port forwarding: ${result.error || 'Failed to stop port forwarding'}`, 'error');
-        this.uiManager.showError(result.error || 'Failed to stop port forwarding');
+      if (
+        s.instanceId === instanceId &&
+        (localPort === undefined || String(s.localPort) === String(localPort)) &&
+        (remotePort === undefined || String(s.remotePort) === String(remotePort))
+      ) {
+        key = k;
+        session = s;
+        break;
       }
-    } catch (error) {
+    }
+    if (!session) {
+      this.uiManager.showError('No active session found for this instance/port combination');
+      return;
+    }
+    this.statusBarManager.updateStatusBar({ 
+      appStatus: 'busy',
+      appStatusText: 'Stopping session...'
+    });
+    const result = await window.electronAPI.stopPortForwarding(instanceId, session.sessionId);
+    if (result && result.success) {
+      this.activeSessions.delete(key);
+      this.statusBarManager.updateStatusBar({ 
+        appStatus: 'ready',
+        appStatusText: 'Ready',
+        activeSessions: this.activeSessions.size
+      });
+      app.refreshInstanceDetails(instanceId);
+      return result;
+    } else {
       this.statusBarManager.updateStatusBar({ 
         appStatus: 'error',
         appStatusText: 'Error'
       });
-      this.consoleManager.addConsoleEntry('ERROR', `Error stopping port forwarding: ${error.message}`, 'error');
-      this.uiManager.showError(`Failed to stop port forwarding: ${error.message}`);
+      const errorMessage = result?.error || 'Failed to stop port forwarding';
+      this.consoleManager.addConsoleEntry('ERROR', `Error stopping port forwarding: ${errorMessage}`, 'error');
+      this.uiManager.showError(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 
@@ -194,13 +215,15 @@ export default class ConnectionManager {
   }
 
   getPortForwardingActions(instanceId) {
-    const session = this.activeSessions.get(instanceId);
-    if (session) {
-      return `
-        <button class="btn-action btn-stop" onclick="app.stopPortForwarding('${instanceId}')">⏹️ Stop Port Forwarding</button>
-      `;
-    } else {
-      return '';
+    // Show stop buttons for all sessions for this instance
+    let actions = '';
+    for (const [key, session] of this.activeSessions.entries()) {
+      if (session.instanceId === instanceId) {
+        actions += `
+          <button class="btn-action btn-stop" onclick="app.stopPortForwarding('${instanceId}', '${session.localPort}', '${session.remotePort}')">⏹️ Stop Port Forwarding (${session.localPort}→${session.remotePort})</button>
+        `;
+      }
     }
+    return actions;
   }
 } 
