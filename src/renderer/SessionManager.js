@@ -47,6 +47,13 @@ export default class SessionManager {
         this.forceCleanupSessions();
       });
     }
+
+    const refreshSessionsList = document.getElementById('refresh-sessions-list');
+    if (refreshSessionsList) {
+      refreshSessionsList.addEventListener('click', () => {
+        this.forceRefreshSessionsList();
+      });
+    }
   }
 
   showSessionDialog() {
@@ -72,6 +79,11 @@ export default class SessionManager {
 
     const activeSessions = this.connectionManager.activeSessions;
     
+    console.log('Populating sessions list. Active sessions:', activeSessions.size);
+    activeSessions.forEach((session, key) => {
+      console.log('Session key:', key, 'Session:', session);
+    });
+    
     if (activeSessions.size === 0) {
       sessionsList.style.display = 'none';
       noSessionsMessage.style.display = 'block';
@@ -83,13 +95,13 @@ export default class SessionManager {
     
     sessionsList.innerHTML = '';
 
-    activeSessions.forEach((session, instanceId) => {
-      const sessionItem = this.createSessionItem(instanceId, session);
+    activeSessions.forEach((session, sessionKey) => {
+      const sessionItem = this.createSessionItem(session.instanceId, session.localPort, session.remotePort, session);
       sessionsList.appendChild(sessionItem);
     });
   }
 
-  createSessionItem(instanceId, session) {
+  createSessionItem(instanceId, localPort, remotePort, session) {
     const sessionItem = document.createElement('div');
     sessionItem.className = 'session-item';
 
@@ -109,11 +121,11 @@ export default class SessionManager {
             </div>
             <div class="session-detail">
               <span class="session-detail-label">Local Port</span>
-              <span class="session-detail-value">${session.localPort}</span>
+              <span class="session-detail-value">${localPort}</span>
             </div>
             <div class="session-detail">
               <span class="session-detail-label">Remote Port</span>
-              <span class="session-detail-value">${session.remotePort}</span>
+              <span class="session-detail-value">${remotePort}</span>
             </div>
             <div class="session-detail">
               <span class="session-detail-label">Started</span>
@@ -130,7 +142,7 @@ export default class SessionManager {
           </div>
         </div>
         <div class="session-actions">
-          <button class="btn-stop-session" onclick="app.stopSessionFromDialog('${instanceId}')">
+          <button class="btn-stop-session" onclick="app.stopSessionFromDialog('${instanceId}', '${localPort}', '${remotePort}')">
             ⏹️ Stop Session
           </button>
         </div>
@@ -158,21 +170,27 @@ export default class SessionManager {
     }
   }
 
-  async stopSessionFromDialog(instanceId) {
+  async stopSessionFromDialog(instanceId, localPort, remotePort) {
     try {
-      this.consoleManager.addConsoleEntry('System', `Stopping session for instance: ${instanceId}`, 'info');
+      this.consoleManager.addConsoleEntry('System', `Stopping session for instance: ${instanceId} (localPort: ${localPort}, remotePort: ${remotePort})`, 'info');
       
-      const result = await this.connectionManager.stopPortForwarding(instanceId);
+      console.log('Stopping session for instanceId:', instanceId, 'localPort:', localPort, 'remotePort:', remotePort);
+      console.log('Current active sessions before stop:', this.connectionManager.activeSessions.size);
+      
+      const result = await this.connectionManager.stopPortForwarding(instanceId, localPort, remotePort);
+      
+      console.log('Stop result:', result);
+      console.log('Active sessions after stop:', this.connectionManager.activeSessions.size);
       
       // Provide detailed feedback about termination
       let consoleMessage = `Session stopped for instance: ${instanceId}`;
       let uiMessage = `Session stopped for instance: ${instanceId}`;
       
-      if (result.processTerminated !== undefined) {
+      if (result && result.processTerminated !== undefined) {
         consoleMessage += ` | Process terminated: ${result.processTerminated ? 'Yes' : 'No'}`;
         uiMessage += `\nProcess terminated: ${result.processTerminated ? '✅ Yes' : '❌ No'}`;
       }
-      if (result.portReleased !== undefined) {
+      if (result && result.portReleased !== undefined) {
         consoleMessage += ` | Port released: ${result.portReleased ? 'Yes' : 'May still be in use'}`;
         uiMessage += `\nPort released: ${result.portReleased ? '✅ Yes' : '⚠️ May still be in use'}`;
       }
@@ -180,7 +198,7 @@ export default class SessionManager {
       this.consoleManager.addConsoleEntry('SUCCESS', consoleMessage, 'info');
       this.uiManager.showSuccess(uiMessage);
       
-      // Refresh the sessions list
+      // Refresh the sessions list immediately
       this.populateSessionsList();
       
       // Update status bar
@@ -191,6 +209,9 @@ export default class SessionManager {
     } catch (error) {
       this.consoleManager.addConsoleEntry('ERROR', `Failed to stop session for instance ${instanceId}: ${error.message}`, 'error');
       this.uiManager.showError(`Failed to stop session: ${error.message}`);
+      
+      // Even on error, refresh the sessions list to ensure UI is up to date
+      this.populateSessionsList();
     }
   }
 
@@ -206,6 +227,14 @@ export default class SessionManager {
     if (dialog && dialog.classList.contains('active')) {
       this.populateSessionsList();
     }
+  }
+
+  forceRefreshSessionsList() {
+    console.log('Force refreshing sessions list');
+    this.populateSessionsList();
+    this.connectionManager.statusBarManager.updateStatusBar({ 
+      activeSessions: this.connectionManager.activeSessions.size 
+    });
   }
 
   async checkOrphanedSessions() {

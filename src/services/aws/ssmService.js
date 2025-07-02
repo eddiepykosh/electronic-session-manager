@@ -226,36 +226,41 @@ function waitForProcessTermination(process, timeoutMs) {
   });
 }
 
-async function verifyPortReleased(port) {
+async function verifyPortReleased(port, retries = 5, delayMs = 500) {
   try {
     const { exec } = require('child_process');
     const { promisify } = require('util');
     const execAsync = promisify(exec);
-    
-    // Check if port is still in use
+
     let command;
     if (process.platform === 'win32') {
       command = `netstat -an | findstr :${port}`;
     } else {
       command = `lsof -i :${port}`;
     }
-    
-    try {
-      const { stdout } = await execAsync(command);
-      const isPortInUse = stdout.trim().length > 0;
-      
-      if (isPortInUse) {
-        console.log(`Port ${port} is still in use`);
-        return false;
-      } else {
-        console.log(`Port ${port} is available`);
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const { stdout } = await execAsync(command);
+        const isPortInUse = stdout.trim().length > 0;
+        if (!isPortInUse) {
+          console.log(`Port ${port} is available (attempt ${attempt})`);
+          return true;
+        } else {
+          console.log(`Port ${port} is still in use (attempt ${attempt})`);
+        }
+      } catch (error) {
+        // If command fails, it usually means port is not in use
+        console.log(`Port ${port} appears to be available (command failed: ${error.message}) (attempt ${attempt})`);
         return true;
       }
-    } catch (error) {
-      // If command fails, it usually means port is not in use
-      console.log(`Port ${port} appears to be available (command failed: ${error.message})`);
-      return true;
+      // Wait before next attempt
+      if (attempt < retries) {
+        await new Promise(res => setTimeout(res, delayMs));
+      }
     }
+    // After all retries, port is still in use
+    return false;
   } catch (error) {
     console.error('Error verifying port release:', error);
     return false;
