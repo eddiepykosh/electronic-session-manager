@@ -19,7 +19,8 @@ export default class ConnectionManager {
           sessionId: result.sessionId,
           connectionType: 'RDP',
           localPort: 13389,
-          remotePort: 3389
+          remotePort: 3389,
+          startTime: new Date()
         });
         
         this.uiManager.showConnectionSuccess('RDP', instanceId, 13389, 3389);
@@ -44,7 +45,8 @@ export default class ConnectionManager {
           sessionId: result.sessionId,
           connectionType: 'SSH',
           localPort: 2222,
-          remotePort: 22
+          remotePort: 22,
+          startTime: new Date()
         });
         
         this.uiManager.showConnectionSuccess('SSH', instanceId, 2222, 22);
@@ -167,7 +169,16 @@ export default class ConnectionManager {
           activeSessions: this.activeSessions.size
         });
         
-        this.uiManager.showSuccess(`Port forwarding stopped for instance ${instanceId}`);
+        // Provide detailed feedback about termination
+        let message = `Port forwarding stopped for instance ${instanceId}`;
+        if (result.processTerminated !== undefined) {
+          message += `\nProcess terminated: ${result.processTerminated ? '✅ Yes' : '❌ No'}`;
+        }
+        if (result.portReleased !== undefined) {
+          message += `\nPort released: ${result.portReleased ? '✅ Yes' : '⚠️ May still be in use'}`;
+        }
+        
+        this.uiManager.showSuccess(message);
         app.refreshInstanceDetails(instanceId);
       } else {
         this.statusBarManager.updateStatusBar({ 

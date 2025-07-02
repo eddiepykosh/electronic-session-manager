@@ -35,6 +35,7 @@ electronic-session-manager/
     │   ├── ProfileManager.js # AWS profile management
     │   ├── ConsoleManager.js # Console/log viewer management
     │   ├── ConnectionManager.js # Port forwarding management
+    │   ├── SessionManager.js # Session management dialog
     │   ├── StatusBarManager.js # Status bar management
     │   └── DarkModeManager.js # Dark mode toggle functionality
     ├── preload/            # Preload scripts
@@ -203,6 +204,8 @@ electronic-session-manager/
 ### Recent Fixes
 - **Custom Portforward Dialog Issue:** Fixed the custom port forwarding dialog not appearing when clicked. The issue was that the dialog was created with `display: none` by default and the `.active` class was never added to make it visible. Fixed by adding `customPortDialog.classList.add('active')` in the `connectViaCustom` method and updating the close method to properly handle the animation.
 - **AWS Region Configuration Issue:** Fixed port forwarding and EC2 operations failing due to missing region specification. Added `getProfileRegion()` function to extract region from AWS profile configuration and updated `buildAWSCommand()` to automatically include region parameter in all AWS CLI commands. This resolves the "You must specify a region" error that was occurring during port forwarding sessions.
+- **Session Management Enhancement:** Added clickable status bar for active sessions with comprehensive session management dialog. Users can now click on the "Active Sessions" count in the status bar to view all active port forwarding sessions, see session details (instance ID, ports, start time, duration), and stop sessions directly from the dialog.
+- **Session Termination Validation:** Enhanced session termination with comprehensive validation. Added process termination verification, port release checking, timeout handling, and detailed feedback. Users now receive confirmation that sessions are actually terminated and ports are released. Added orphaned session detection and force cleanup capabilities for better session management.
 - **Process Management:** Interactive AWS CLI session handling with proper cleanup
 
 ### Dependencies to Add (FUTURE)
