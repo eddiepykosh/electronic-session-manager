@@ -844,6 +844,65 @@ body {
   transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
 
+/* Profile selection messages */
+.no-profile-message,
+.profile-ready-message {
+  text-align: center;
+  padding: 2rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 2px 4px var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.no-profile-message {
+  border-color: var(--warning-color);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255, 152, 0, 0.05) 100%);
+}
+
+.profile-ready-message {
+  border-color: var(--success-color);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(76, 175, 80, 0.05) 100%);
+}
+
+.message-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.no-profile-message .message-icon {
+  color: var(--warning-color);
+}
+
+.profile-ready-message .message-icon {
+  color: var(--success-color);
+}
+
+.no-profile-message h3,
+.profile-ready-message h3 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.no-profile-message p,
+.profile-ready-message p {
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.message-hint {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
 /* Instance Details Panel Styles */
 .instance-details-panel {
   background: var(--bg-secondary);
