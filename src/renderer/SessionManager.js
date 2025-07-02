@@ -54,6 +54,26 @@ export default class SessionManager {
         this.forceRefreshSessionsList();
       });
     }
+
+    const forceKillAllPlugins = document.getElementById('force-kill-all-plugins');
+    if (forceKillAllPlugins) {
+      forceKillAllPlugins.addEventListener('click', async () => {
+        try {
+          this.consoleManager.addConsoleEntry('System', 'Force killing all session-manager-plugin processes...', 'info');
+          const result = await window.electronAPI.forceKillAllSessionManagerPlugins();
+          if (result.success) {
+            this.consoleManager.addConsoleEntry('SUCCESS', result.message, 'info');
+            this.uiManager.showSuccess(result.message);
+          } else {
+            this.consoleManager.addConsoleEntry('ERROR', result.message, 'error');
+            this.uiManager.showError(result.message);
+          }
+        } catch (error) {
+          this.consoleManager.addConsoleEntry('ERROR', `Failed to force kill all session-manager-plugin processes: ${error.message}`, 'error');
+          this.uiManager.showError(`Failed to force kill all session-manager-plugin processes: ${error.message}`);
+        }
+      });
+    }
   }
 
   showSessionDialog() {

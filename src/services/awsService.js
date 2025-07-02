@@ -179,6 +179,10 @@ class AWSService {
     await this.ensureAWSCLI();
     return ssmService.forceKillOrphanedSessions();
   }
+
+  async forceKillAllSessionManagerPlugins() {
+    return ssmService.forceKillAllSessionManagerPlugins();
+  }
 }
 
 module.exports = AWSService;

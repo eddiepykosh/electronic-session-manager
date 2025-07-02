@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('aws:stop-port-forwarding', { instanceId, sessionId }),
   findOrphanedSessions: () => ipcRenderer.invoke('aws:find-orphaned-sessions'),
   forceKillOrphanedSessions: () => ipcRenderer.invoke('aws:force-kill-orphaned-sessions'),
+  forceKillAllSessionManagerPlugins: () => ipcRenderer.invoke('aws:force-kill-all-session-manager-plugins'),
   
   // AWS Profile operations
   getAvailableProfiles: () => ipcRenderer.invoke('aws:get-profiles'),

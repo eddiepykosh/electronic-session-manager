@@ -145,6 +145,18 @@ const setupIPCHandlers = () => {
     }
   });
 
+  ipcMain.handle('aws:force-kill-all-session-manager-plugins', async () => {
+    try {
+      sendLogToRenderer('info', 'Force killing all session-manager-plugin processes...');
+      const result = await awsService.forceKillAllSessionManagerPlugins();
+      sendLogToRenderer(result.success ? 'info' : 'error', result.message);
+      return result;
+    } catch (error) {
+      sendLogToRenderer('error', `Failed to force kill all session-manager-plugin processes: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+  });
+
   // AWS Profile operations
   ipcMain.handle('aws:get-profiles', async () => {
     try {
