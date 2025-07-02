@@ -3,12 +3,13 @@ const {
   execAsync,
   ensureAWSCLI,
   buildAWSCommand,
+  getProfileRegion,
 } = require('./common');
 
 async function getInstanceInformation(profile) {
   try {
     await ensureAWSCLI();
-    const command = buildAWSCommand('aws ssm describe-instance-information --output json', profile);
+    const command = await buildAWSCommand('aws ssm describe-instance-information --output json', profile);
     const { stdout } = await execAsync(command);
     const data = JSON.parse(stdout);
     return data.InstanceInformationList || [];
@@ -22,7 +23,7 @@ async function startSession(instanceId, profile) {
   try {
     await ensureAWSCLI();
     // This will start an interactive session
-    const command = buildAWSCommand(`aws ssm start-session --target ${instanceId}`, profile);
+    const command = await buildAWSCommand(`aws ssm start-session --target ${instanceId}`, profile);
     console.log('Starting session with command:', command);
     
     // For now, we'll just return success - actual session handling will be implemented later
@@ -51,10 +52,10 @@ async function startPortForwarding(instanceId, localPort, remotePort, profile) {
     const parameters = `portNumber=${remotePort},localPortNumber=${localPort}`;
     
     const baseCommand = `aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSession --parameters "${parameters}"`;
-    const command = buildAWSCommand(baseCommand, profile);
+    const command = await buildAWSCommand(baseCommand, profile);
     console.log('Starting port forwarding with command:', command);
     
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const args = [
         'ssm', 'start-session',
         '--target', instanceId,
@@ -62,6 +63,11 @@ async function startPortForwarding(instanceId, localPort, remotePort, profile) {
         '--parameters', parameters
       ];
       
+      // Add region
+      const region = await getProfileRegion(profile || 'default');
+      args.push('--region', region);
+      
+      // Add profile if specified and not default
       if (profile && profile !== 'default') {
         args.push('--profile', profile);
       }

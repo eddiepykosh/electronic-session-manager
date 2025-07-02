@@ -4,6 +4,7 @@ const {
   credentialsPath,
   configPath,
   ensureAWSCLI,
+  buildAWSCommand,
   appendToCredentialsFile,
   appendToConfigFile,
   profileExistsInFiles,
@@ -62,9 +63,7 @@ async function getAvailableProfiles() {
 async function testProfile(profile) {
   try {
     await ensureAWSCLI();
-    const command = profile && profile !== 'default' 
-      ? `aws sts get-caller-identity --profile ${profile} --output json`
-      : 'aws sts get-caller-identity --output json';
+    const command = await buildAWSCommand('aws sts get-caller-identity --output json', profile);
     const { stdout } = await execAsync(command);
     const data = JSON.parse(stdout);
     return {

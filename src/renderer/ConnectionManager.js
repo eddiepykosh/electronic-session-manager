@@ -83,7 +83,9 @@ export default class ConnectionManager {
     
     document.body.appendChild(customPortDialog);
     
+    // Add the active class to make the dialog visible
     setTimeout(() => {
+      customPortDialog.classList.add('active');
       const localPortInput = document.getElementById('local-port');
       if (localPortInput) localPortInput.focus();
     }, 100);
@@ -121,7 +123,7 @@ export default class ConnectionManager {
         });
         
         this.uiManager.showConnectionSuccess('Custom Port Forwarding', instanceId, localPort, remotePort);
-        this.uiManager.closeCustomPortDialog();
+        app.closeCustomPortDialog();
         app.refreshInstanceDetails(instanceId);
       } else {
         this.statusBarManager.updateStatusBar({ 

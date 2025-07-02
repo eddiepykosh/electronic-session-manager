@@ -181,6 +181,7 @@ electronic-session-manager/
 - [x] Implement session persistence
 - [ ] Add configuration management UI
 - [x] Create port forwarding UI
+- [x] Fix Custom Portforward dialog visibility issue
 
 #### Phase 4: Polish
 - [ ] Error handling and user feedback
@@ -198,6 +199,10 @@ electronic-session-manager/
 - **Logging:** Structured logging with file output and console display
 - **Console System:** Real-time log viewing with export capabilities
 - **Session Management:** Port forwarding session tracking and process management
+
+### Recent Fixes
+- **Custom Portforward Dialog Issue:** Fixed the custom port forwarding dialog not appearing when clicked. The issue was that the dialog was created with `display: none` by default and the `.active` class was never added to make it visible. Fixed by adding `customPortDialog.classList.add('active')` in the `connectViaCustom` method and updating the close method to properly handle the animation.
+- **AWS Region Configuration Issue:** Fixed port forwarding and EC2 operations failing due to missing region specification. Added `getProfileRegion()` function to extract region from AWS profile configuration and updated `buildAWSCommand()` to automatically include region parameter in all AWS CLI commands. This resolves the "You must specify a region" error that was occurring during port forwarding sessions.
 - **Process Management:** Interactive AWS CLI session handling with proper cleanup
 
 ### Dependencies to Add (FUTURE)

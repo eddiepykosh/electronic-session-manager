@@ -8,7 +8,7 @@ async function getInstances(profile) {
   try {
     console.log(`Attempting to get EC2 instances using profile: ${profile}...`)
     await ensureAWSCLI();
-    const command = buildAWSCommand('aws ec2 describe-instances --output json', profile);
+    const command = await buildAWSCommand('aws ec2 describe-instances --output json', profile);
     const { stdout } = await execAsync(command);
     const data = JSON.parse(stdout);
     
@@ -41,7 +41,7 @@ async function getInstances(profile) {
 async function startInstance(instanceId, profile) {
   try {
     await ensureAWSCLI();
-    const command = buildAWSCommand(`aws ec2 start-instances --instance-ids ${instanceId} --output json`, profile);
+    const command = await buildAWSCommand(`aws ec2 start-instances --instance-ids ${instanceId} --output json`, profile);
     const { stdout } = await execAsync(command);
     const data = JSON.parse(stdout);
     
@@ -64,7 +64,7 @@ async function startInstance(instanceId, profile) {
 async function stopInstance(instanceId, profile) {
   try {
     await ensureAWSCLI();
-    const command = buildAWSCommand(`aws ec2 stop-instances --instance-ids ${instanceId} --output json`, profile);
+    const command = await buildAWSCommand(`aws ec2 stop-instances --instance-ids ${instanceId} --output json`, profile);
     const { stdout } = await execAsync(command);
     const data = JSON.parse(stdout);
     

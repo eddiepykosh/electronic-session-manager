@@ -32,11 +32,21 @@ async function ensureAWSCLI() {
   }
 }
 
-function buildAWSCommand(baseCommand, profile) {
-  if (profile && profile !== 'default') {
-    return `${baseCommand} --profile ${profile}`;
+async function buildAWSCommand(baseCommand, profile) {
+  let command = baseCommand;
+  
+  // Add region if not already present
+  if (!command.includes('--region') && !command.includes('--region=')) {
+    const region = await getProfileRegion(profile || 'default');
+    command = `${command} --region ${region}`;
   }
-  return baseCommand;
+  
+  // Add profile if specified and not default
+  if (profile && profile !== 'default') {
+    command = `${command} --profile ${profile}`;
+  }
+  
+  return command;
 }
 
 async function ensureConfigDirectory() {
@@ -127,6 +137,39 @@ async function profileExistsInFiles(profileName) {
   }
 }
 
+async function getProfileRegion(profileName) {
+  try {
+    const configContent = await fs.readFile(configPath, 'utf8');
+    const lines = configContent.split('\n');
+    let inProfileSection = false;
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine === `[profile ${profileName}]`) {
+        inProfileSection = true;
+        continue;
+      }
+      
+      if (inProfileSection) {
+        if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
+          break;
+        }
+        
+        if (trimmedLine.startsWith('region = ')) {
+          return trimmedLine.split('=')[1].trim();
+        }
+      }
+    }
+    
+    // If no region found in config, try to get from environment or use default
+    return process.env.AWS_DEFAULT_REGION || 'us-east-1';
+  } catch (error) {
+    console.error('Error getting profile region:', error);
+    return process.env.AWS_DEFAULT_REGION || 'us-east-1';
+  }
+}
+
 async function isSSOProfile(profileName) {
   try {
     const configContent = await fs.readFile(configPath, 'utf8');
@@ -170,4 +213,5 @@ module.exports = {
   appendToConfigFile,
   profileExistsInFiles,
   isSSOProfile,
+  getProfileRegion,
 }; 

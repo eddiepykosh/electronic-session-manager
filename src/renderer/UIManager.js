@@ -120,7 +120,10 @@ export default class UIManager {
   closeCustomPortDialog() {
     const dialog = document.querySelector('.custom-port-dialog');
     if (dialog) {
-      dialog.remove();
+      dialog.classList.remove('active');
+      setTimeout(() => {
+        dialog.remove();
+      }, 300); // Wait for the animation to complete
     }
   }
 } 
