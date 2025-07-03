@@ -1,3 +1,55 @@
+/**
+ * AWS Profile Service - Electronic Session Manager
+ * 
+ * This file provides comprehensive AWS profile management services.
+ * It handles profile creation, validation, deletion, and SSO authentication
+ * for both IAM and SSO profile types.
+ * 
+ * Key Responsibilities:
+ * - Manages AWS profile lifecycle (create, test, delete)
+ * - Handles IAM profile creation with access keys
+ * - Manages SSO profile setup and authentication
+ * - Validates profile credentials and permissions
+ * - Provides profile discovery and listing
+ * - Manages AWS configuration files
+ * 
+ * Architecture Role:
+ * - Acts as the AWS profile management service layer
+ * - Coordinates between application and AWS configuration files
+ * - Provides profile validation and testing capabilities
+ * - Handles SSO authentication workflows
+ * - Manages profile file I/O operations
+ * 
+ * Profile Types Supported:
+ * - IAM Profiles: Access key/secret key based authentication
+ * - SSO Profiles: Single Sign-On based authentication
+ * - Default Profile: System default AWS profile
+ * 
+ * Profile Operations:
+ * - Profile discovery from files and CLI
+ * - Profile creation (IAM and SSO)
+ * - Profile validation and testing
+ * - Profile deletion and cleanup
+ * - SSO login and status checking
+ * 
+ * File Management:
+ * - AWS credentials file manipulation
+ * - AWS config file manipulation
+ * - Safe profile section removal
+ * - Configuration file parsing
+ * 
+ * Security Features:
+ * - Profile name validation
+ * - Credential secure handling
+ * - SSO session management
+ * - Profile existence checking
+ * 
+ * Dependencies:
+ * - common.js: For AWS CLI utilities and file operations
+ * - Node.js fs: For file system operations
+ * - AWS CLI: For profile operations and SSO
+ */
+
 const fs = require('fs').promises;
 const {
   execAsync,
@@ -11,12 +63,19 @@ const {
   isSSOProfile,
 } = require('./common');
 
+/**
+ * Retrieves all available AWS profiles from configuration files and CLI
+ * Discovers profiles from credentials file, config file, and AWS CLI
+ * @returns {Promise<Array>} Array of available profile names
+ */
 async function getAvailableProfiles() {
   try {
     await ensureAWSCLI();
     
+    // Start with default profile
     const profiles = new Set(['default']);
     
+    // Read profiles from credentials file
     try {
       const credentialsContent = await fs.readFile(credentialsPath, 'utf8');
       const profileMatches = credentialsContent.match(/\[([^\]]+)\]/g);
@@ -32,6 +91,7 @@ async function getAvailableProfiles() {
       console.log('No AWS credentials file found or unable to read');
     }
 
+    // Read profiles from config file
     try {
       const configContent = await fs.readFile(configPath, 'utf8');
       const profileMatches = configContent.match(/\[profile ([^\]]+)\]/g);
@@ -45,6 +105,7 @@ async function getAvailableProfiles() {
       console.log('No AWS config file found or unable to read');
     }
 
+    // Get profiles from AWS CLI
     try {
       const { stdout } = await execAsync('aws configure list-profiles');
       const cliProfiles = stdout.trim().split('\n').filter(p => p.trim());
@@ -60,6 +121,11 @@ async function getAvailableProfiles() {
   }
 }
 
+/**
+ * Tests a profile's validity by attempting to get caller identity
+ * @param {string} profile - Profile name to test
+ * @returns {Promise<Object>} Object containing validation result and identity info
+ */
 async function testProfile(profile) {
   try {
     await ensureAWSCLI();
@@ -80,16 +146,29 @@ async function testProfile(profile) {
   }
 }
 
+/**
+ * Creates an IAM profile with access key credentials
+ * @param {string} profileName - Name for the new profile
+ * @param {Object} credentials - IAM credentials object
+ * @param {string} credentials.accessKeyId - AWS access key ID
+ * @param {string} credentials.secretAccessKey - AWS secret access key
+ * @param {string} credentials.sessionToken - Optional session token
+ * @param {string} credentials.region - AWS region (default: us-east-1)
+ * @returns {Promise<Object>} Object containing creation result
+ */
 async function createIAMProfile(profileName, { accessKeyId, secretAccessKey, sessionToken, region = 'us-east-1' }) {
   try {
+    // Validate required parameters
     if (!profileName || !accessKeyId || !secretAccessKey) {
       throw new Error('Profile name, access key ID, and secret access key are required');
     }
 
+    // Validate profile name format
     if (!/^[a-zA-Z0-9_-]+$/.test(profileName)) {
       throw new Error('Profile name can only contain letters, numbers, underscores, and hyphens');
     }
 
+    // Check if profile already exists
     const existsInFiles = await profileExistsInFiles(profileName);
     if (existsInFiles) {
       throw new Error(`Profile "${profileName}" already exists in AWS configuration files`);
@@ -100,11 +179,13 @@ async function createIAMProfile(profileName, { accessKeyId, secretAccessKey, ses
       throw new Error(`Profile "${profileName}" already exists`);
     }
 
+    // Create credentials file entry
     let credentialsEntry = `[${profileName}]
 aws_access_key_id = ${accessKeyId}
 aws_secret_access_key = ${secretAccessKey}
 `;
     
+    // Add session token if provided
     if (sessionToken && sessionToken.trim()) {
       credentialsEntry += `aws_session_token = ${sessionToken}
 `;
@@ -112,6 +193,7 @@ aws_secret_access_key = ${secretAccessKey}
 
     await appendToCredentialsFile(credentialsEntry);
 
+    // Create config file entry
     const configEntry = `[profile ${profileName}]
 region = ${region}
 output = json
@@ -132,16 +214,30 @@ output = json
   }
 }
 
+/**
+ * Creates an SSO profile with SSO configuration
+ * @param {string} profileName - Name for the new profile
+ * @param {Object} ssoConfig - SSO configuration object
+ * @param {string} ssoConfig.ssoStartUrl - SSO start URL
+ * @param {string} ssoConfig.ssoRegion - SSO region
+ * @param {string} ssoConfig.accountId - AWS account ID
+ * @param {string} ssoConfig.roleName - SSO role name
+ * @param {string} ssoConfig.region - AWS region (default: us-east-1)
+ * @returns {Promise<Object>} Object containing creation result
+ */
 async function createSSOProfile(profileName, { ssoStartUrl, ssoRegion, accountId, roleName, region = 'us-east-1' }) {
   try {
+    // Validate required parameters
     if (!profileName || !ssoStartUrl || !ssoRegion || !accountId || !roleName) {
       throw new Error('Profile name, SSO start URL, SSO region, account ID, and role name are required');
     }
 
+    // Validate profile name format
     if (!/^[a-zA-Z0-9_-]+$/.test(profileName)) {
       throw new Error('Profile name can only contain letters, numbers, underscores, and hyphens');
     }
 
+    // Check if profile already exists
     const existsInFiles = await profileExistsInFiles(profileName);
     if (existsInFiles) {
       throw new Error(`Profile "${profileName}" already exists in AWS configuration files`);
@@ -152,6 +248,7 @@ async function createSSOProfile(profileName, { ssoStartUrl, ssoRegion, accountId
       throw new Error(`Profile "${profileName}" already exists`);
     }
 
+    // Create config file entry for SSO profile
     const configEntry = `[profile ${profileName}]
 sso_start_url = ${ssoStartUrl}
 sso_region = ${ssoRegion}
@@ -176,6 +273,13 @@ output = json
   }
 }
 
+/**
+ * Creates a profile of the specified type
+ * @param {string} profileName - Name for the new profile
+ * @param {string} profileType - Type of profile ('iam' or 'sso')
+ * @param {Object} profileData - Profile configuration data
+ * @returns {Promise<Object>} Object containing creation result
+ */
 async function createProfile(profileName, profileType, profileData) {
   try {
     await ensureAWSCLI();
@@ -193,6 +297,10 @@ async function createProfile(profileName, profileType, profileData) {
   }
 }
 
+/**
+ * Removes a profile section from the credentials file
+ * @param {string} profileName - Name of the profile to remove
+ */
 async function removeFromCredentialsFile(profileName) {
   try {
     const content = await fs.readFile(credentialsPath, 'utf8');
@@ -200,16 +308,19 @@ async function removeFromCredentialsFile(profileName) {
     const newLines = [];
     let skipSection = false;
     
+    // Parse file line by line, skipping the target profile section
     for (const line of lines) {
       if (line.trim() === `[${profileName}]`) {
         skipSection = true;
         continue;
       }
       
+      // Stop skipping when we hit another profile section
       if (skipSection && line.trim().startsWith('[') && line.trim().endsWith(']')) {
         skipSection = false;
       }
       
+      // Only add lines that are not in the skipped section
       if (!skipSection) {
         newLines.push(line);
       }
@@ -221,6 +332,10 @@ async function removeFromCredentialsFile(profileName) {
   }
 }
 
+/**
+ * Removes a profile section from the config file
+ * @param {string} profileName - Name of the profile to remove
+ */
 async function removeFromConfigFile(profileName) {
   try {
     const content = await fs.readFile(configPath, 'utf8');
@@ -228,16 +343,19 @@ async function removeFromConfigFile(profileName) {
     const newLines = [];
     let skipSection = false;
     
+    // Parse file line by line, skipping the target profile section
     for (const line of lines) {
       if (line.trim() === `[profile ${profileName}]`) {
         skipSection = true;
         continue;
       }
       
+      // Stop skipping when we hit another profile section
       if (skipSection && line.trim().startsWith('[') && line.trim().endsWith(']')) {
         skipSection = false;
       }
       
+      // Only add lines that are not in the skipped section
       if (!skipSection) {
         newLines.push(line);
       }
@@ -249,23 +367,32 @@ async function removeFromConfigFile(profileName) {
   }
 }
 
+/**
+ * Deletes a profile from AWS configuration files
+ * @param {string} profileName - Name of the profile to delete
+ * @returns {Promise<Object>} Object containing deletion result
+ */
 async function deleteProfile(profileName) {
   try {
     await ensureAWSCLI();
     
+    // Validate profile name
     if (!profileName) {
       throw new Error('Profile name is required');
     }
 
+    // Check if profile exists
     const existingProfiles = await getAvailableProfiles();
     if (!existingProfiles.includes(profileName)) {
       throw new Error(`Profile "${profileName}" does not exist`);
     }
 
+    // Prevent deletion of default profile
     if (profileName === 'default') {
       throw new Error('Cannot delete the default profile');
     }
 
+    // Remove profile from both files
     await removeFromCredentialsFile(profileName);
     await removeFromConfigFile(profileName);
 
@@ -281,19 +408,27 @@ async function deleteProfile(profileName) {
   }
 }
 
+/**
+ * Performs SSO login for a profile
+ * @param {string} profileName - Name of the SSO profile to login
+ * @returns {Promise<Object>} Object containing login result
+ */
 async function performSSOLogin(profileName) {
   try {
     await ensureAWSCLI();
     
+    // Validate profile name
     if (!profileName) {
       throw new Error('Profile name is required');
     }
 
+    // Check if profile exists
     const existingProfiles = await getAvailableProfiles();
     if (!existingProfiles.includes(profileName)) {
       throw new Error(`Profile "${profileName}" does not exist`);
     }
 
+    // Verify it's an SSO profile
     const isSSO = await isSSOProfile(profileName);
     if (!isSSO) {
       throw new Error(`Profile "${profileName}" is not an SSO profile`);
@@ -301,6 +436,7 @@ async function performSSOLogin(profileName) {
 
     console.log(`Starting SSO login for profile: ${profileName}`);
     
+    // Execute SSO login command
     const command = `aws sso login --profile ${profileName}`;
     console.log('SSO login command:', command);
     
@@ -311,6 +447,7 @@ async function performSSOLogin(profileName) {
       console.log('SSO login stderr:', stderr);
     }
     
+    // Check login status after completion
     const loginStatus = await checkSSOLoginStatus(profileName);
     
     return {
@@ -325,10 +462,16 @@ async function performSSOLogin(profileName) {
   }
 }
 
+/**
+ * Checks the SSO login status for a profile
+ * @param {string} profileName - Name of the SSO profile to check
+ * @returns {Promise<Object>} Object containing login status
+ */
 async function checkSSOLoginStatus(profileName) {
   try {
     await ensureAWSCLI();
     
+    // Test the profile to check authentication status
     const profileInfo = await testProfile(profileName);
     
     return {
@@ -349,11 +492,16 @@ async function checkSSOLoginStatus(profileName) {
   }
 }
 
+/**
+ * Gets SSO login status for all SSO profiles
+ * @returns {Promise<Array>} Array of SSO profile status objects
+ */
 async function getAllSSOLoginStatus() {
   try {
     const profiles = await getAvailableProfiles();
     const ssoProfiles = [];
     
+    // Check each profile to see if it's SSO and get its status
     for (const profile of profiles) {
       const isSSO = await isSSOProfile(profile);
       if (isSSO) {
@@ -372,6 +520,7 @@ async function getAllSSOLoginStatus() {
   }
 }
 
+// Export all profile service functions
 module.exports = {
   getAvailableProfiles,
   testProfile,

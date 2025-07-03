@@ -1,20 +1,55 @@
 <!DOCTYPE html>
+<!--
+  Main HTML File - Electronic Session Manager
+  
+  This file serves as the primary user interface for the Electronic Session Manager application.
+  It provides a comprehensive tabbed interface for managing AWS EC2 instances, viewing console logs,
+  and managing AWS profiles.
+  
+  Key Features:
+  - Tabbed interface with Instances and Console tabs
+  - AWS profile management with SSO support
+  - Real-time status bar with system information
+  - Dark mode toggle functionality
+  - Session management for port forwarding
+  - Responsive design with modern UI elements
+  
+  Structure:
+  - Header: Application title, dark mode toggle, and profile selector
+  - Main Content: Sidebar with instance list and tabbed content area
+  - Footer: Status bar with real-time system information
+  - Dialogs: Profile management and session management modals
+  
+  Architecture Role:
+  - Provides the complete UI structure for the application
+  - Defines all interactive elements and their IDs
+  - Sets up the foundation for JavaScript functionality
+  - Establishes the visual hierarchy and user experience
+-->
+
 <html>
   <head>
     <meta charset="UTF-8" />
     <title>ELECTRONic Session Manager</title>
+    <!-- Link to the main stylesheet that contains all UI styling -->
     <link rel="stylesheet" href="../styles/main.css" />
   </head>
   <body>
+    <!-- Main application container -->
     <div id="app">
+      <!-- Application Header Section -->
       <header class="app-header">
         <div class="header-content">
+          <!-- Left side of header: Application title and description -->
           <div class="header-left">
             <h1>ELECTRONic Session Manager</h1>
             <p>AWS EC2 Instance Management Tool</p>
           </div>
+          
+          <!-- Right side of header: Controls and profile management -->
           <div class="header-right">
             <div class="header-controls-panel">
+              <!-- Dark Mode Toggle -->
               <div class="dark-mode-toggle">
                 <label for="dark-mode-switch" class="dark-mode-label">
                   <span class="toggle-icon">🌙</span>
@@ -22,15 +57,20 @@
                 </label>
                 <input type="checkbox" id="dark-mode-switch" class="dark-mode-switch">
               </div>
+              
+              <!-- AWS Profile Selector -->
               <div class="profile-selector">
                 <label for="profile-select">AWS Profile:</label>
+                <!-- Dropdown for selecting AWS profiles -->
                 <select id="profile-select" class="profile-dropdown">
                   <option value="">Loading profiles...</option>
                 </select>
+                <!-- Profile status indicator showing validity -->
                 <div id="profile-status" class="profile-status">
                   <span class="status-indicator"></span>
                   <span class="status-text">Loading...</span>
                 </div>
+                <!-- Button to open profile management dialog -->
                 <button id="manage-profiles" class="btn-manage-profiles">⚙️ Manage Profiles</button>
               </div>
             </div>
@@ -38,43 +78,50 @@
         </div>
       </header>
       
+      <!-- Main Application Content -->
       <main class="app-main">
+        <!-- Left Sidebar: Instance List and Controls -->
         <div class="sidebar">
           <h2>Instances</h2>
+          <!-- Instance control buttons -->
           <div class="instance-controls">
             <button id="refresh-instances" class="btn-primary">🔄 Refresh Instances</button>
           </div>
+          <!-- Container for the list of EC2 instances -->
           <div id="instance-list">
-            <!-- Instance list will be populated here -->
+            <!-- Instance list will be populated here by JavaScript -->
           </div>
         </div>
         
+        <!-- Main Content Area: Tabbed Interface -->
         <div class="content">
-          <!-- Tab Navigation -->
+          <!-- Tab Navigation Bar -->
           <div class="tab-navigation">
             <button class="tab-button active" data-tab="instances">Instances</button>
             <button class="tab-button" data-tab="console">Console</button>
           </div>
           
-          <!-- Tab Content -->
+          <!-- Tab Content Panels -->
           <div class="tab-content">
-            <!-- Instances Tab -->
+            <!-- Instances Tab: Shows detailed information about selected EC2 instances -->
             <div id="instances-tab" class="tab-panel active">
               <div id="instance-details">
-                <!-- Instance details will be shown here -->
+                <!-- Instance details will be shown here when an instance is selected -->
                 <p>Select an instance to view details</p>
               </div>
             </div>
             
-            <!-- Console Tab -->
+            <!-- Console Tab: Real-time log viewer -->
             <div id="console-tab" class="tab-panel">
               <div class="console-header">
                 <h3>Application Console</h3>
+                <!-- Console control buttons -->
                 <div class="console-controls">
                   <button id="clear-console" class="btn-secondary">Clear</button>
                   <button id="export-logs" class="btn-secondary">Export</button>
                 </div>
               </div>
+              <!-- Console output area for log messages -->
               <div id="console-output" class="console-output">
                 <!-- Console output will be displayed here -->
               </div>
@@ -83,10 +130,12 @@
         </div>
       </main>
       
-      <!-- Status Bar -->
+      <!-- Status Bar: Real-time system information -->
       <footer class="status-bar">
         <div class="status-bar-content">
+          <!-- Left side of status bar: AWS and profile status -->
           <div class="status-left">
+            <!-- AWS CLI availability status -->
             <div class="status-item">
               <span class="status-label">AWS CLI:</span>
               <span id="aws-cli-status" class="status-value">
@@ -94,6 +143,7 @@
                 <span class="status-text">Checking...</span>
               </span>
             </div>
+            <!-- Current AWS profile status -->
             <div class="status-item">
               <span class="status-label">Profile:</span>
               <span id="current-profile-status" class="status-value">
@@ -101,6 +151,7 @@
                 <span class="status-text">None</span>
               </span>
             </div>
+            <!-- Active port forwarding sessions count -->
             <div class="status-item">
               <span class="status-label">Active Sessions:</span>
               <span id="active-sessions-status" class="status-value clickable">
@@ -109,7 +160,10 @@
               </span>
             </div>
           </div>
+          
+          <!-- Right side of status bar: Application status and timing -->
           <div class="status-right">
+            <!-- Application status indicator -->
             <div class="status-item">
               <span class="status-label">App Status:</span>
               <span id="app-status" class="status-value">
@@ -117,6 +171,7 @@
                 <span class="status-text">Ready</span>
               </span>
             </div>
+            <!-- Last update timestamp -->
             <div class="status-item">
               <span class="status-label">Last Update:</span>
               <span id="last-update-time" class="status-value">
@@ -128,20 +183,23 @@
       </footer>
     </div>
     
-    <!-- Profile Management Dialog -->
+    <!-- Profile Management Dialog: Modal for managing AWS profiles -->
     <div id="profile-management-dialog" class="profile-dialog">
       <div class="profile-dialog-content">
+        <!-- Dialog header with close button -->
         <div class="profile-dialog-header">
           <h2>🔧 AWS Profile Management</h2>
           <button id="close-profile-dialog" class="btn-close">×</button>
         </div>
         
+        <!-- Dialog body with profile management sections -->
         <div class="profile-dialog-body">
-          <!-- SSO Login Section -->
+          <!-- SSO Login Section: For managing AWS SSO profiles -->
           <div class="profile-section">
             <h3>SSO Login</h3>
             <div class="sso-login-section">
               <p class="sso-description">Login to your AWS SSO profiles to access AWS resources.</p>
+              <!-- Container for SSO profile list -->
               <div class="sso-profiles-list" id="sso-profiles-list">
                 <!-- SSO profiles will be populated here -->
               </div>
@@ -149,15 +207,16 @@
             </div>
           </div>
           
-          <!-- Create New Profile Section -->
+          <!-- Create New Profile Section: Forms for creating IAM and SSO profiles -->
           <div class="profile-section">
             <h3>Create New Profile</h3>
+            <!-- Profile type selector tabs -->
             <div class="profile-type-selector">
               <button class="profile-type-btn active" data-type="iam">IAM Profile</button>
               <button class="profile-type-btn" data-type="sso">SSO Profile</button>
             </div>
             
-            <!-- IAM Profile Form -->
+            <!-- IAM Profile Creation Form -->
             <form id="iam-profile-form" class="profile-form active">
               <div class="form-group">
                 <label for="iam-profile-name">Profile Name:</label>
@@ -190,7 +249,7 @@
               <button type="submit" class="btn-create-profile">Create IAM Profile</button>
             </form>
             
-            <!-- SSO Profile Form -->
+            <!-- SSO Profile Creation Form -->
             <form id="sso-profile-form" class="profile-form">
               <div class="form-group">
                 <label for="sso-profile-name">Profile Name:</label>
@@ -234,9 +293,10 @@
             </form>
           </div>
           
-          <!-- Existing Profiles Section -->
+          <!-- Existing Profiles Section: List and management of existing profiles -->
           <div class="profile-section">
             <h3>Existing Profiles</h3>
+            <!-- Container for existing profile list -->
             <div id="existing-profiles-list" class="profiles-list">
               <!-- Profiles will be populated here -->
             </div>
@@ -245,23 +305,28 @@
       </div>
     </div>
     
-    <!-- Session Management Dialog -->
+    <!-- Session Management Dialog: Modal for managing port forwarding sessions -->
     <div id="session-management-dialog" class="session-dialog">
       <div class="session-dialog-content">
+        <!-- Dialog header with close button -->
         <div class="session-dialog-header">
           <h2>🔗 Active Port Forwarding Sessions</h2>
           <button id="close-session-dialog" class="btn-close">×</button>
         </div>
         
+        <!-- Dialog body with session management controls -->
         <div class="session-dialog-body">
+          <!-- Container for active sessions list -->
           <div id="active-sessions-list" class="sessions-list">
             <!-- Active sessions will be populated here -->
           </div>
           
+          <!-- Message shown when no sessions are active -->
           <div id="no-sessions-message" class="no-sessions-message">
             <p>No active port forwarding sessions</p>
           </div>
           
+          <!-- Session management action buttons -->
           <div class="session-dialog-actions">
             <button id="refresh-sessions-list" class="btn-secondary">🔄 Refresh List</button>
             <button id="check-orphaned-sessions" class="btn-secondary">🔍 Check for Orphaned Sessions</button>
@@ -272,7 +337,10 @@
       </div>
     </div>
     
+    <!-- Notification container for displaying temporary messages -->
     <div id="notification-container"></div>
+    
+    <!-- Main JavaScript file that handles all UI interactions -->
     <script type="module" src="./renderer.js"></script>
   </body>
 </html>

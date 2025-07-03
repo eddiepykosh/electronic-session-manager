@@ -25,7 +25,7 @@ module.exports = {
       config: {
         options: {
           maintainer: 'Eddie Pykosh <eddie@pykosh.com>',
-          homepage: 'https://github.com/yourusername/electronic-session-manager',
+          homepage: 'https://github.com/eddiepykosh/electronic-session-manager',
         },
       },
     },
@@ -34,7 +34,7 @@ module.exports = {
       config: {
         options: {
           maintainer: 'Eddie Pykosh <eddie@pykosh.com>',
-          homepage: 'https://github.com/yourusername/electronic-session-manager',
+          homepage: 'https://github.com/eddiepykosh/electronic-session-manager',
         },
       },
     },

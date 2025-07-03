@@ -1,3 +1,60 @@
+/**
+ * AWS Session Manager Service - Electronic Session Manager
+ * 
+ * This file provides AWS Session Manager (SSM) services for establishing
+ * secure connections to EC2 instances. It handles port forwarding, session
+ * management, and process lifecycle management.
+ * 
+ * Key Responsibilities:
+ * - Manages AWS Session Manager connections to EC2 instances
+ * - Handles port forwarding setup and teardown
+ * - Manages session-manager-plugin process lifecycle
+ * - Provides session monitoring and cleanup
+ * - Handles orphaned session detection and termination
+ * - Manages cross-platform process operations
+ * 
+ * Architecture Role:
+ * - Acts as the AWS Session Manager service layer
+ * - Coordinates between application and AWS SSM
+ * - Manages process spawning and termination
+ * - Provides session lifecycle management
+ * - Handles cross-platform compatibility
+ * 
+ * Session Operations:
+ * - Start interactive SSM sessions
+ * - Establish port forwarding tunnels
+ * - Monitor session status and health
+ * - Gracefully terminate sessions
+ * - Clean up orphaned processes
+ * 
+ * Port Forwarding Features:
+ * - Local to remote port mapping
+ * - Session ID tracking
+ * - Process PID monitoring
+ * - Port availability verification
+ * - Graceful termination handling
+ * 
+ * Cross-Platform Support:
+ * - Windows: PowerShell process management
+ * - Unix/Linux: Standard process operations
+ * - Platform-specific port verification
+ * - Session-manager-plugin detection
+ * 
+ * Process Management:
+ * - Child process spawning and monitoring
+ * - Graceful termination with timeouts
+ * - Force kill fallback mechanisms
+ * - Orphaned process detection
+ * - Plugin process tracking (Windows)
+ * 
+ * Dependencies:
+ * - common.js: For AWS CLI utilities and command building
+ * - Node.js child_process: For process spawning and management
+ * - Node.js os: For platform detection
+ * - AWS CLI: For SSM operations
+ * - session-manager-plugin: For port forwarding
+ */
+
 const { spawn, execSync } = require('child_process');
 const {
   execAsync,
@@ -7,6 +64,12 @@ const {
 } = require('./common');
 const os = require('os');
 
+/**
+ * Retrieves SSM instance information for a profile
+ * Gets list of instances available for Session Manager
+ * @param {string} profile - AWS profile name
+ * @returns {Promise<Array>} Array of SSM instance information
+ */
 async function getInstanceInformation(profile) {
   try {
     await ensureAWSCLI();
@@ -20,6 +83,12 @@ async function getInstanceInformation(profile) {
   }
 }
 
+/**
+ * Starts an interactive SSM session with an instance
+ * @param {string} instanceId - EC2 instance ID
+ * @param {string} profile - AWS profile name
+ * @returns {Promise<Object>} Session information object
+ */
 async function startSession(instanceId, profile) {
   try {
     await ensureAWSCLI();
@@ -39,6 +108,14 @@ async function startSession(instanceId, profile) {
   }
 }
 
+/**
+ * Starts port forwarding from local port to remote port on an EC2 instance
+ * @param {string} instanceId - EC2 instance ID
+ * @param {number} localPort - Local port number
+ * @param {number} remotePort - Remote port number
+ * @param {string} profile - AWS profile name
+ * @returns {Promise<Object>} Port forwarding session object
+ */
 async function startPortForwarding(instanceId, localPort, remotePort, profile) {
   try {
     await ensureAWSCLI();
@@ -166,6 +243,11 @@ async function startPortForwarding(instanceId, localPort, remotePort, profile) {
   }
 }
 
+/**
+ * Stops a port forwarding session
+ * @param {Object} sessionToStop - Session object to stop
+ * @returns {Promise<Object>} Stop operation result
+ */
 async function stopPortForwarding(sessionToStop) {
   try {
     console.log('Stopping port forwarding for instance:', sessionToStop.instanceId, 'session:', sessionToStop.sessionId);
@@ -257,6 +339,12 @@ async function stopPortForwarding(sessionToStop) {
   }
 }
 
+/**
+ * Waits for a process to terminate with timeout
+ * @param {ChildProcess} process - Process to monitor
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns {Promise<boolean>} True if process terminated, false if timeout
+ */
 function waitForProcessTermination(process, timeoutMs) {
   return new Promise((resolve) => {
     const startTime = Date.now();
@@ -281,6 +369,13 @@ function waitForProcessTermination(process, timeoutMs) {
   });
 }
 
+/**
+ * Verifies that a port is no longer in use
+ * @param {number} port - Port number to check
+ * @param {number} retries - Number of retry attempts
+ * @param {number} delayMs - Delay between retries in milliseconds
+ * @returns {Promise<boolean>} True if port is available, false otherwise
+ */
 async function verifyPortReleased(port, retries = 5, delayMs = 500) {
   try {
     const { exec } = require('child_process');
@@ -322,6 +417,10 @@ async function verifyPortReleased(port, retries = 5, delayMs = 500) {
   }
 }
 
+/**
+ * Finds orphaned AWS SSM session processes
+ * @returns {Promise<Array>} Array of orphaned process information
+ */
 async function findOrphanedSessions() {
   try {
     const { exec } = require('child_process');
@@ -357,6 +456,10 @@ async function findOrphanedSessions() {
   }
 }
 
+/**
+ * Force kills all orphaned SSM session processes
+ * @returns {Promise<Object>} Result of force kill operation
+ */
 async function forceKillOrphanedSessions() {
   try {
     const orphanedProcesses = await findOrphanedSessions();
@@ -389,6 +492,10 @@ async function forceKillOrphanedSessions() {
   }
 }
 
+/**
+ * Force kills all session-manager-plugin processes
+ * @returns {Promise<Object>} Result of force kill operation
+ */
 async function forceKillAllSessionManagerPlugins() {
   try {
     if (os.platform() === 'win32') {
@@ -403,6 +510,7 @@ async function forceKillAllSessionManagerPlugins() {
   }
 }
 
+// Export all SSM service functions
 module.exports = {
   getInstanceInformation,
   startSession,

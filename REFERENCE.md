@@ -18,7 +18,8 @@ electronic-session-manager/
 ├── REFERENCE.md            # This reference document
 ├── .gitignore              # Git ignore patterns
 ├── docs/                   # Documentation
-│   └── DEVELOPMENT.md      # Development guide
+│   ├── DEVELOPMENT.md      # Development guide (UPDATED)
+│   └── CI_CD.md           # CI/CD documentation
 ├── scripts/                # Build and utility scripts
 ├── tests/                  # Test files
 ├── build/                  # Build artifacts
@@ -26,10 +27,10 @@ electronic-session-manager/
 ├── cli_bins/               # CLI binary files
 └── src/                    # Source code
     ├── main/               # Main process files
-    │   └── main.js         # Main process entry point
+    │   └── main.js         # Main process entry point with IPC handlers
     ├── renderer/           # Renderer process files
     │   ├── index.html      # Main HTML file with tabbed interface
-    │   ├── renderer.js     # Renderer process logic
+    │   ├── renderer.js     # Main renderer coordinator
     │   ├── UIManager.js    # UI management and coordination
     │   ├── InstanceManager.js # EC2 instance management
     │   ├── ProfileManager.js # AWS profile management
@@ -39,21 +40,21 @@ electronic-session-manager/
     │   ├── StatusBarManager.js # Status bar management
     │   └── DarkModeManager.js # Dark mode toggle functionality
     ├── preload/            # Preload scripts
-    │   └── preload.js      # Secure API exposure
+    │   └── preload.js      # Secure API exposure with contextBridge
     ├── services/           # Business logic services
-    │   ├── awsService.js   # Main AWS service integration
+    │   ├── awsService.js   # Main AWS service coordinator
     │   └── aws/            # AWS-specific services
-    │       ├── common.js   # Common AWS utilities
+    │       ├── common.js   # Common AWS utilities and CLI checking
     │       ├── ec2Service.js # EC2 instance operations
-    │       ├── profileService.js # Profile management
+    │       ├── profileService.js # Profile management and SSO
     │       └── ssmService.js # Session Manager operations
     ├── utils/              # Utility functions
-    │   └── logger.js       # Logging utility
+    │   └── logger.js       # Structured logging utility
     ├── config/             # Configuration management
-    │   └── config.js       # App configuration
+    │   └── config.js       # App configuration with file persistence
     ├── components/         # UI components
     ├── styles/             # CSS styles
-    │   └── main.css        # Main stylesheet with tabbed UI
+    │   └── main.css        # Main stylesheet with modern UI
     ├── assets/             # Static assets
     └── shared/             # Shared code between processes
 ```
@@ -64,29 +65,75 @@ electronic-session-manager/
 
 - **Development Dependencies:**
   - `@electron-forge/cli`: Electron Forge CLI tools
-  - `@electron-forge/maker-*`: Platform-specific build tools
+  - `@electron-forge/maker-deb`: Linux DEB package maker
+  - `@electron-forge/maker-rpm`: Linux RPM package maker
+  - `@electron-forge/maker-squirrel`: Windows installer maker
+  - `@electron-forge/maker-zip`: Cross-platform ZIP maker
+  - `@electron-forge/maker-dmg`: macOS DMG maker
   - `@electron-forge/plugin-auto-unpack-natives`: Native module handling
   - `@electron-forge/plugin-fuses`: Electron security features
   - `@electron/fuses`: Fuse configuration utilities
   - `electron`: Electron runtime (v36.5.0)
+  - `jest`: Testing framework (v29.7.0)
+  - `jest-environment-node`: Node.js test environment (v29.7.0)
 
 ### Current Application State
-- **Main Process (`src/main/main.js`):** Enhanced with IPC handlers, service initialization, and log forwarding to renderer
-- **Renderer Process (`src/renderer/index.html`):** Tabbed interface with Instances and Console tabs, refresh instances button, status bar
-- **Renderer Process (`src/renderer/renderer.js`):** EC2 instance loading and display functionality, instance details panel, status bar management
-- **Preload Script (`src/preload/preload.js`):** Complete API exposure including log message handling, AWS CLI check functionality
-- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, instance list styling, comprehensive instance details panel styling, status bar styling with responsive design, profile selection message styling
+- **Main Process (`src/main/main.js`):** Complete with IPC handlers, service initialization, and log forwarding to renderer. **FULLY COMMENTED** with detailed explanations of all IPC handlers, service initialization, and application lifecycle management.
+- **Renderer Process (`src/renderer/index.html`):** Tabbed interface with Instances and Console tabs, refresh instances button, status bar. **FULLY COMMENTED** with comprehensive HTML structure documentation and component explanations.
+- **Renderer Process (`src/renderer/renderer.js`):** Main coordinator for all UI manager components with delegation methods. **FULLY COMMENTED** with detailed architecture explanations and manager component integration.
+- **UI Manager Components:** Specialized managers for different UI functionality:
+  - `UIManager.js`: General UI state and dialog management
+  - `InstanceManager.js`: EC2 instance management and display
+  - `ProfileManager.js`: AWS profile management and validation
+  - `ConsoleManager.js`: Log viewing and console functionality
+  - `ConnectionManager.js`: Port forwarding and connection handling
+  - `SessionManager.js`: Session management and cleanup
+  - `StatusBarManager.js`: Real-time status display
+  - `DarkModeManager.js`: Theme switching functionality
+- **Preload Script (`src/preload/preload.js`):** Complete API exposure including AWS operations, configuration, and logging. **FULLY COMMENTED** with comprehensive security architecture documentation and API method explanations.
+- **Styling (`src/styles/main.css`):** Modern CSS with tabbed interface, console styling, instance list styling, comprehensive instance details panel styling, status bar styling with responsive design, profile selection message styling. **FULLY COMMENTED** with detailed CSS variable documentation and component styling explanations.
 - **AWS Services:**
-  - `src/services/awsService.js`: Main AWS CLI integration with graceful CLI availability handling
+  - `src/services/awsService.js`: Main AWS service coordinator with graceful CLI availability handling. **FULLY COMMENTED** with comprehensive service architecture documentation and method explanations.
   - `src/services/aws/ec2Service.js`: EC2 instance operations
   - `src/services/aws/profileService.js`: Profile management and SSO integration
   - `src/services/aws/ssmService.js`: Session Manager operations
-  - `src/services/aws/common.js`: Common AWS utilities
-- **Configuration (`src/config/config.js`):** Configuration management with file persistence
-- **Logging (`src/utils/logger.js`):** Structured logging utility with file output support
+  - `src/services/aws/common.js`: Common AWS utilities and CLI checking
+- **Configuration (`src/config/config.js`):** Configuration management with file persistence. **FULLY COMMENTED** with detailed configuration schema documentation and method explanations.
+- **Logging (`src/utils/logger.js`):** Structured logging utility with file output support. **FULLY COMMENTED** with comprehensive logging architecture documentation and specialized method explanations.
 - **Console Tab:** Real-time log viewer with export functionality
 - **Status Bar:** Real-time status tracking for AWS CLI, profiles, active sessions, app status, and last update time
 - **Profile Selection:** Manual profile selection required before instance loading - no auto-connection on app startup
+
+### Code Documentation Status
+**COMPLETED:** All JavaScript, HTML, and CSS files have been comprehensively commented with:
+- Detailed header comments explaining file purpose and architecture role
+- Inline comments explaining complex logic and business rules
+- JSDoc-style documentation for all methods and functions
+- Section headers organizing code by functionality
+- Parameter and return value documentation
+- Security and architectural considerations documented
+- Cross-references to related components and dependencies
+- **FULLY COMMENTED FILES:**
+  - Main process (`src/main/main.js`)
+  - Renderer process (`src/renderer/renderer.js`)
+  - HTML interface (`src/renderer/index.html`)
+  - Preload script (`src/preload/preload.js`)
+  - Main stylesheet (`src/styles/main.css`)
+  - AWS service integration (`src/services/awsService.js`)
+  - AWS utilities (`src/services/aws/common.js`)
+  - EC2 service (`src/services/aws/ec2Service.js`)
+  - Profile service (`src/services/aws/profileService.js`)
+  - SSM service (`src/services/aws/ssmService.js`)
+  - Configuration management (`src/config/config.js`)
+  - Logging utility (`src/utils/logger.js`)
+  - UI management (`src/renderer/UIManager.js`)
+  - Instance management (`src/renderer/InstanceManager.js`)
+  - Profile management (`src/renderer/ProfileManager.js`)
+  - Console management (`src/renderer/ConsoleManager.js`)
+  - Connection management (`src/renderer/ConnectionManager.js`)
+  - Session management (`src/renderer/SessionManager.js`)
+  - Status bar management (`src/renderer/StatusBarManager.js`)
+  - Dark mode management (`src/renderer/DarkModeManager.js`)
 
 ### Build Configuration
 - **Forge Config:** Configured for multiple platforms (Windows, macOS, Linux)
@@ -483,3 +530,38 @@ electronic-session-manager/
 - **Artifact Download:** Added explicit download path configuration and debugging output
 - **Release Creation:** Added `fail_on_unmatched_files: false` and `generate_release_notes: true`
 - **File Patterns:** Simplified to use wildcard patterns (`artifacts/*-installer/*`) for better compatibility
+
+### Testing Framework Implementation
+- **Jest Configuration:** Complete Jest setup with Node.js test environment
+- **Test Coverage:** 70% threshold for branches, functions, lines, and statements
+- **Mocking Strategy:** Comprehensive mocking of Electron, file system, and child processes
+- **Test Structure:**
+  - **Unit Tests:** Individual module testing with isolated mocks
+  - **Integration Tests:** Multi-service coordination testing
+  - **Test Categories:** Logger, configuration, AWS services, and service integration
+- **Test Runner:** Custom test runner script with multiple execution options
+- **Coverage Reports:** Text, LCOV, and HTML coverage output formats
+- **Test Documentation:** Comprehensive README with usage examples and best practices
+- **CI/CD Ready:** Designed for continuous integration with fast, deterministic execution
+- **Test Files Created:**
+  - `jest.config.js`: Jest configuration with coverage and mocking setup
+  - `tests/setup.js`: Global test setup with Electron and process mocks
+  - `tests/utils/logger.test.js`: Logger utility unit tests
+  - `tests/config/config.test.js`: Configuration management unit tests
+  - `tests/services/aws/common.test.js`: AWS common utilities unit tests
+  - `tests/services/aws/ec2Service.test.js`: EC2 service unit tests
+  - `tests/integration/awsService.integration.test.js`: AWS service integration tests
+  - `tests/run-tests.js`: Custom test runner with multiple execution modes
+  - `tests/README.md`: Comprehensive test suite documentation
+- **NPM Scripts Added:**
+  - `npm test`: Run all tests
+  - `npm run test:watch`: Run tests in watch mode
+  - `npm run test:coverage`: Run tests with coverage report
+- **Mocking Coverage:**
+  - **Electron:** app, BrowserWindow, ipcMain, ipcRenderer, contextBridge
+  - **File System:** fs, path modules with file operations
+  - **Process:** child_process.exec, child_process.spawn for CLI commands
+  - **Console:** console.log, console.error, console.warn for controlled output
+- **Test Data:** Comprehensive mock data for EC2 instances, AWS profiles, and configuration
+- **Error Testing:** Both success and failure scenarios with proper error handling
+- **Async Testing:** Proper async/await usage with promise rejection testing

@@ -1,16 +1,14 @@
-**Still in very active development and was primarily written by Cursor. Not everything the AI made has been reviewed yet so this is considered unstable and some features might not work.  Use AI responsibly kids.**
+# ELECTRONic Session Manager "ESM"
 
+A Electron-based desktop application for managing AWS EC2 instances through the AWS CLI Session Manager plugin. Namely providing a way to easily use AWS Session Manager to port forward your EC2 ports to your local machine.
 
-# Electronic Session Manager
-
-A modern Electron-based desktop application for managing AWS EC2 instances through the AWS CLI Session Manager plugin.
+The underlying management is done via AWS CLI so all the actions you perform using ESM could be performed by AWS CLI.
 
 ## Features
 
 - **EC2 Instance Management**: List, describe, start, and stop EC2 instances
 - **AWS Session Manager Integration**: Connect to instances via Session Manager
 - **Port Forwarding**: Configure and manage port forwarding sessions
-- **Modern UI**: Clean, responsive interface built with modern web technologies
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 
 ## Prerequisites
@@ -55,7 +53,7 @@ sudo yum install -y session-manager-plugin.rpm
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/eddiepykosh/electronic-session-manager.git
    cd electronic-session-manager
    ```
 
