@@ -74,6 +74,8 @@ electronic-session-manager/
   - `@electron-forge/plugin-fuses`: Electron security features
   - `@electron/fuses`: Fuse configuration utilities
   - `electron`: Electron runtime (v36.5.0)
+  - `jest`: Testing framework (v29.7.0)
+  - `jest-environment-node`: Node.js test environment (v29.7.0)
 
 ### Current Application State
 - **Main Process (`src/main/main.js`):** Complete with IPC handlers, service initialization, and log forwarding to renderer. **FULLY COMMENTED** with detailed explanations of all IPC handlers, service initialization, and application lifecycle management.
@@ -528,3 +530,38 @@ electronic-session-manager/
 - **Artifact Download:** Added explicit download path configuration and debugging output
 - **Release Creation:** Added `fail_on_unmatched_files: false` and `generate_release_notes: true`
 - **File Patterns:** Simplified to use wildcard patterns (`artifacts/*-installer/*`) for better compatibility
+
+### Testing Framework Implementation
+- **Jest Configuration:** Complete Jest setup with Node.js test environment
+- **Test Coverage:** 70% threshold for branches, functions, lines, and statements
+- **Mocking Strategy:** Comprehensive mocking of Electron, file system, and child processes
+- **Test Structure:**
+  - **Unit Tests:** Individual module testing with isolated mocks
+  - **Integration Tests:** Multi-service coordination testing
+  - **Test Categories:** Logger, configuration, AWS services, and service integration
+- **Test Runner:** Custom test runner script with multiple execution options
+- **Coverage Reports:** Text, LCOV, and HTML coverage output formats
+- **Test Documentation:** Comprehensive README with usage examples and best practices
+- **CI/CD Ready:** Designed for continuous integration with fast, deterministic execution
+- **Test Files Created:**
+  - `jest.config.js`: Jest configuration with coverage and mocking setup
+  - `tests/setup.js`: Global test setup with Electron and process mocks
+  - `tests/utils/logger.test.js`: Logger utility unit tests
+  - `tests/config/config.test.js`: Configuration management unit tests
+  - `tests/services/aws/common.test.js`: AWS common utilities unit tests
+  - `tests/services/aws/ec2Service.test.js`: EC2 service unit tests
+  - `tests/integration/awsService.integration.test.js`: AWS service integration tests
+  - `tests/run-tests.js`: Custom test runner with multiple execution modes
+  - `tests/README.md`: Comprehensive test suite documentation
+- **NPM Scripts Added:**
+  - `npm test`: Run all tests
+  - `npm run test:watch`: Run tests in watch mode
+  - `npm run test:coverage`: Run tests with coverage report
+- **Mocking Coverage:**
+  - **Electron:** app, BrowserWindow, ipcMain, ipcRenderer, contextBridge
+  - **File System:** fs, path modules with file operations
+  - **Process:** child_process.exec, child_process.spawn for CLI commands
+  - **Console:** console.log, console.error, console.warn for controlled output
+- **Test Data:** Comprehensive mock data for EC2 instances, AWS profiles, and configuration
+- **Error Testing:** Both success and failure scenarios with proper error handling
+- **Async Testing:** Proper async/await usage with promise rejection testing
