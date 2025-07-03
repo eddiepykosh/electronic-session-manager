@@ -1,51 +1,189 @@
-// Renderer process script
-// This file handles the UI interactions and communicates with the main process
+/**
+ * Main Renderer Process Script - Electronic Session Manager
+ * 
+ * This file serves as the main entry point for the renderer process (UI layer) of the application.
+ * It initializes and coordinates all UI managers and provides the bridge between the HTML interface
+ * and the business logic components.
+ * 
+ * Key Responsibilities:
+ * - Initializes all UI manager components
+ * - Provides delegation methods for HTML onclick handlers
+ * - Coordinates communication between different UI components
+ * - Exposes the application instance to the global window object
+ * 
+ * Architecture Role:
+ * - Acts as the main coordinator for all UI functionality
+ * - Provides a clean interface for HTML event handlers
+ * - Manages the lifecycle of all UI manager components
+ * - Serves as the entry point for the renderer process
+ * 
+ * Component Dependencies:
+ * - UIManager: General UI state and dialog management
+ * - ConsoleManager: Log viewing and console functionality
+ * - StatusBarManager: Real-time status display
+ * - ConnectionManager: Port forwarding and connection handling
+ * - InstanceManager: EC2 instance management and display
+ * - ProfileManager: AWS profile management
+ * - DarkModeManager: Theme switching functionality
+ * - SessionManager: Session management and cleanup
+ */
 
-import UIManager from './UIManager.js';
-import ConsoleManager from './ConsoleManager.js';
-import StatusBarManager from './StatusBarManager.js';
-import ConnectionManager from './ConnectionManager.js';
-import InstanceManager from './InstanceManager.js';
-import ProfileManager from './ProfileManager.js';
-import DarkModeManager from './DarkModeManager.js';
-import SessionManager from './SessionManager.js';
+// Import all UI manager components that handle specific functionality
+import UIManager from './UIManager.js';           // General UI state and dialog management
+import ConsoleManager from './ConsoleManager.js'; // Log viewing and console functionality
+import StatusBarManager from './StatusBarManager.js'; // Real-time status display
+import ConnectionManager from './ConnectionManager.js'; // Port forwarding and connection handling
+import InstanceManager from './InstanceManager.js'; // EC2 instance management and display
+import ProfileManager from './ProfileManager.js'; // AWS profile management
+import DarkModeManager from './DarkModeManager.js'; // Theme switching functionality
+import SessionManager from './SessionManager.js'; // Session management and cleanup
 
+/**
+ * Main application class that coordinates all UI components
+ * This class serves as the central coordinator for all user interface functionality
+ */
 class ElectronicSessionManager {
+  /**
+   * Constructor initializes all UI manager components
+   * Sets up the dependency chain and initializes the application
+   */
   constructor() {
+    // Initialize dark mode manager first (no dependencies)
     this.darkModeManager = new DarkModeManager();
+    
+    // Initialize UI manager (no dependencies)
     this.uiManager = new UIManager();
+    
+    // Initialize console manager (depends on UI manager)
     this.consoleManager = new ConsoleManager(this.uiManager);
+    
+    // Initialize status bar manager (no dependencies)
     this.statusBarManager = new StatusBarManager();
+    
+    // Initialize connection manager (depends on UI, console, and status bar managers)
     this.connectionManager = new ConnectionManager(this.uiManager, this.consoleManager, this.statusBarManager);
+    
+    // Initialize session manager (depends on connection, UI, and console managers)
     this.sessionManager = new SessionManager(this.connectionManager, this.uiManager, this.consoleManager);
+    
+    // Initialize instance manager (depends on UI, console, connection, and status bar managers)
     this.instanceManager = new InstanceManager(this.uiManager, this.consoleManager, this.connectionManager, this.statusBarManager);
+    
+    // Initialize profile manager (depends on UI, console, status bar, and instance managers)
     this.profileManager = new ProfileManager(this.uiManager, this.consoleManager, this.statusBarManager, this.instanceManager);
     
+    // Log successful initialization
     console.log('Electronic Session Manager initialized');
   }
 
-  // --- Delegated methods to preserve onclick functionality ---
+  // ===== DELEGATION METHODS =====
+  // These methods provide a clean interface for HTML onclick handlers
+  // They delegate to the appropriate manager component
 
-  // InstanceManager delegations
-  startInstance(instanceId) { this.instanceManager.startInstance(instanceId); }
-  stopInstance(instanceId) { this.instanceManager.stopInstance(instanceId); }
-  refreshInstanceDetails(instanceId) { this.instanceManager.refreshInstanceDetails(instanceId); }
+  // ===== INSTANCE MANAGER DELEGATIONS =====
+  // Methods for managing EC2 instances
+  
+  /**
+   * Starts an EC2 instance
+   * @param {string} instanceId - The ID of the instance to start
+   */
+  startInstance(instanceId) { 
+    this.instanceManager.startInstance(instanceId); 
+  }
+  
+  /**
+   * Stops an EC2 instance
+   * @param {string} instanceId - The ID of the instance to stop
+   */
+  stopInstance(instanceId) { 
+    this.instanceManager.stopInstance(instanceId); 
+  }
+  
+  /**
+   * Refreshes the details for a specific instance
+   * @param {string} instanceId - The ID of the instance to refresh
+   */
+  refreshInstanceDetails(instanceId) { 
+    this.instanceManager.refreshInstanceDetails(instanceId); 
+  }
 
-  // ConnectionManager delegations
-  connectViaRDP(instanceId) { this.connectionManager.connectViaRDP(instanceId); }
-  connectViaSSH(instanceId) { this.connectionManager.connectViaSSH(instanceId); }
-  connectViaCustom(instanceId) { this.connectionManager.connectViaCustom(instanceId); }
-  startCustomPortForwarding(instanceId) { this.connectionManager.startCustomPortForwarding(instanceId); }
-  stopPortForwarding(instanceId) { this.connectionManager.stopPortForwarding(instanceId); }
+  // ===== CONNECTION MANAGER DELEGATIONS =====
+  // Methods for managing connections and port forwarding
   
-  // SessionManager delegations
-  stopSessionFromDialog(instanceId) { this.sessionManager.stopSessionFromDialog(instanceId); }
+  /**
+   * Initiates an RDP connection to an EC2 instance
+   * @param {string} instanceId - The ID of the instance to connect to
+   */
+  connectViaRDP(instanceId) { 
+    this.connectionManager.connectViaRDP(instanceId); 
+  }
   
-  // UIManager delegations
-  closeCustomPortDialog() { this.uiManager.closeCustomPortDialog(); }
-  closeSuccessPopup() { this.uiManager.closeSuccessPopup(); }
+  /**
+   * Initiates an SSH connection to an EC2 instance
+   * @param {string} instanceId - The ID of the instance to connect to
+   */
+  connectViaSSH(instanceId) { 
+    this.connectionManager.connectViaSSH(instanceId); 
+  }
+  
+  /**
+   * Opens the custom connection dialog for an EC2 instance
+   * @param {string} instanceId - The ID of the instance to connect to
+   */
+  connectViaCustom(instanceId) { 
+    this.connectionManager.connectViaCustom(instanceId); 
+  }
+  
+  /**
+   * Starts custom port forwarding for an EC2 instance
+   * @param {string} instanceId - The ID of the instance to forward ports for
+   */
+  startCustomPortForwarding(instanceId) { 
+    this.connectionManager.startCustomPortForwarding(instanceId); 
+  }
+  
+  /**
+   * Stops port forwarding for an EC2 instance
+   * @param {string} instanceId - The ID of the instance to stop forwarding for
+   */
+  stopPortForwarding(instanceId) { 
+    this.connectionManager.stopPortForwarding(instanceId); 
+  }
+  
+  // ===== SESSION MANAGER DELEGATIONS =====
+  // Methods for managing active sessions
+  
+  /**
+   * Stops a session from the session management dialog
+   * @param {string} instanceId - The ID of the instance whose session to stop
+   */
+  stopSessionFromDialog(instanceId) { 
+    this.sessionManager.stopSessionFromDialog(instanceId); 
+  }
+  
+  // ===== UI MANAGER DELEGATIONS =====
+  // Methods for general UI operations
+  
+  /**
+   * Closes the custom port forwarding dialog
+   */
+  closeCustomPortDialog() { 
+    this.uiManager.closeCustomPortDialog(); 
+  }
+  
+  /**
+   * Closes the success popup dialog
+   */
+  closeSuccessPopup() { 
+    this.uiManager.closeSuccessPopup(); 
+  }
 }
 
-// Initialize the application and expose it to the window
+// ===== APPLICATION INITIALIZATION =====
+
+// Create the main application instance
 const app = new ElectronicSessionManager();
+
+// Expose the application instance to the global window object
+// This allows HTML onclick handlers to access the application methods
 window.app = app;

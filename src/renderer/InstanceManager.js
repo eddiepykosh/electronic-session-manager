@@ -1,4 +1,52 @@
+/**
+ * Instance Manager - Electronic Session Manager
+ * 
+ * This file manages the display and interaction with EC2 instances in the application.
+ * It handles instance loading, display, details viewing, and instance control operations
+ * such as starting and stopping instances.
+ * 
+ * Key Responsibilities:
+ * - Loads and displays EC2 instances from AWS
+ * - Manages instance list rendering and updates
+ * - Handles instance selection and details display
+ * - Provides instance control operations (start/stop)
+ * - Manages instance status indicators and icons
+ * - Coordinates with connection manager for port forwarding
+ * - Handles profile-dependent instance loading
+ * 
+ * Architecture Role:
+ * - Acts as the main EC2 instance management component
+ * - Coordinates between AWS services and UI display
+ * - Manages instance state and user interactions
+ * - Provides instance details and action buttons
+ * - Integrates with connection management for port forwarding
+ * 
+ * Features:
+ * - Manual instance loading (no auto-load on profile selection)
+ * - Real-time instance status display
+ * - Detailed instance information panels
+ * - Instance control operations
+ * - Connection options for running instances
+ * - Status-based action button generation
+ * - Instance selection and highlighting
+ * 
+ * Dependencies:
+ * - UIManager: For notifications and UI utilities
+ * - ConsoleManager: For logging operations
+ * - ConnectionManager: For port forwarding actions
+ * - StatusBarManager: For status updates
+ * - electronAPI: For AWS operations
+ */
+
 export default class InstanceManager {
+  /**
+   * Constructor initializes the instance manager with dependencies
+   * Sets up instance controls and displays initial profile message
+   * @param {UIManager} uiManager - UI management utilities
+   * @param {ConsoleManager} consoleManager - Console logging
+   * @param {ConnectionManager} connectionManager - Port forwarding management
+   * @param {StatusBarManager} statusBarManager - Status bar updates
+   */
   constructor(uiManager, consoleManager, connectionManager, statusBarManager) {
     this.uiManager = uiManager;
     this.consoleManager = consoleManager;
@@ -10,6 +58,10 @@ export default class InstanceManager {
     this.displayNoProfileMessage();
   }
 
+  /**
+   * Sets up instance control button event listeners
+   * Handles refresh instances button functionality
+   */
   setupInstanceControls() {
     const refreshButton = document.getElementById('refresh-instances');
     if (refreshButton) {
@@ -17,6 +69,10 @@ export default class InstanceManager {
     }
   }
 
+  /**
+   * Displays message when no AWS profile is selected
+   * Informs user they need to select a profile before loading instances
+   */
   displayNoProfileMessage() {
     const instanceList = document.getElementById('instance-list');
     if (instanceList) {
@@ -31,6 +87,10 @@ export default class InstanceManager {
     }
   }
 
+  /**
+   * Displays message when profile is ready but instances haven't been loaded
+   * Prompts user to manually refresh instances
+   */
   displayProfileReadyMessage() {
     const instanceList = document.getElementById('instance-list');
     if (instanceList) {
@@ -45,6 +105,10 @@ export default class InstanceManager {
     }
   }
 
+  /**
+   * Loads EC2 instances from AWS and updates the display
+   * Handles loading states, error handling, and status updates
+   */
   async loadInstances() {
     this.statusBarManager.updateStatusBar({ 
       appStatus: 'busy',
@@ -86,6 +150,11 @@ export default class InstanceManager {
     }
   }
 
+  /**
+   * Displays the list of EC2 instances in the sidebar
+   * Creates HTML for each instance with status and action buttons
+   * @param {Array} instances - Array of EC2 instance objects
+   */
   displayInstances(instances) {
     const instanceList = document.getElementById('instance-list');
     
@@ -127,6 +196,11 @@ export default class InstanceManager {
     this.setupInstanceClickHandlers();
   }
 
+  /**
+   * Returns the appropriate status icon for an instance state
+   * @param {string} status - Instance state (running, stopped, etc.)
+   * @returns {string} Unicode emoji icon for the status
+   */
   getStatusIcon(status) {
     switch (status?.toLowerCase()) {
       case 'running': return '🟢';
@@ -138,6 +212,12 @@ export default class InstanceManager {
     }
   }
 
+  /**
+   * Generates action buttons for instance list items
+   * Shows appropriate buttons based on instance state
+   * @param {Object} instance - EC2 instance object
+   * @returns {string} HTML string of action buttons
+   */
   getActionButtons(instance) {
     const status = instance.state?.toLowerCase();
     let buttons = '';
@@ -151,6 +231,12 @@ export default class InstanceManager {
     return buttons;
   }
 
+  /**
+   * Generates detailed action buttons for instance details panel
+   * Includes connection options for running instances
+   * @param {Object} instance - EC2 instance object
+   * @returns {string} HTML string of detailed action buttons
+   */
   getDetailsActionButtons(instance) {
     const status = instance.state?.toLowerCase();
     let buttons = '';
@@ -167,6 +253,10 @@ export default class InstanceManager {
     return buttons;
   }
 
+  /**
+   * Sets up click handlers for instance list items
+   * Handles instance selection and details display
+   */
   setupInstanceClickHandlers() {
     const instanceItems = document.querySelectorAll('.instance-item');
     instanceItems.forEach(item => {
@@ -182,6 +272,11 @@ export default class InstanceManager {
     });
   }
 
+  /**
+   * Displays detailed information for a selected instance
+   * Shows comprehensive instance information in the details panel
+   * @param {string} instanceId - ID of the instance to show details for
+   */
   showInstanceDetails(instanceId) {
     const instance = this.instances.find(inst => inst.id === instanceId);
     if (!instance) {
@@ -247,6 +342,11 @@ export default class InstanceManager {
     this.consoleManager.addConsoleEntry('System', `Displaying details for instance: ${instanceName} (${instanceId})`, 'info');
   }
 
+  /**
+   * Starts an EC2 instance
+   * Handles the start operation and provides user feedback
+   * @param {string} instanceId - ID of the instance to start
+   */
   async startInstance(instanceId) {
     try {
       this.consoleManager.addConsoleEntry('System', `Starting instance: ${instanceId}`, 'info');
@@ -263,6 +363,11 @@ export default class InstanceManager {
     }
   }
 
+  /**
+   * Stops an EC2 instance
+   * Handles the stop operation and provides user feedback
+   * @param {string} instanceId - ID of the instance to stop
+   */
   async stopInstance(instanceId) {
     try {
       this.consoleManager.addConsoleEntry('System', `Stopping instance: ${instanceId}`, 'info');
@@ -279,6 +384,11 @@ export default class InstanceManager {
     }
   }
 
+  /**
+   * Refreshes the details display for a specific instance
+   * Updates the instance details panel with current information
+   * @param {string} instanceId - ID of the instance to refresh
+   */
   refreshInstanceDetails(instanceId) {
     this.showInstanceDetails(instanceId);
   }
