@@ -30,12 +30,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/electronic-session-manager.git"
+    "url": "https://github.com/eddiepykosh/electronic-session-manager.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/electronic-session-manager/issues"
+    "url": "https://github.com/eddiepykosh/electronic-session-manager/issues"
   },
-  "homepage": "https://github.com/yourusername/electronic-session-manager#readme",
+  "homepage": "https://github.com/eddiepykosh/electronic-session-manager#readme",
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1"
   },
