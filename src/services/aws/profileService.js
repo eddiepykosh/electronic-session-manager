@@ -81,7 +81,7 @@ async function getAvailableProfiles() {
       const profileMatches = credentialsContent.match(/\[([^\]]+)\]/g);
       if (profileMatches) {
         profileMatches.forEach(match => {
-          const profileName = match.slice(1, -1);
+          const profileName = match.slice(1, -1).trim();
           if (profileName !== 'default') {
             profiles.add(profileName);
           }
@@ -97,7 +97,7 @@ async function getAvailableProfiles() {
       const profileMatches = configContent.match(/\[profile ([^\]]+)\]/g);
       if (profileMatches) {
         profileMatches.forEach(match => {
-          const profileName = match.slice(9, -1);
+          const profileName = match.slice(9, -1).trim();
           profiles.add(profileName);
         });
       }
@@ -108,13 +108,16 @@ async function getAvailableProfiles() {
     // Get profiles from AWS CLI
     try {
       const { stdout } = await execAsync('aws configure list-profiles');
-      const cliProfiles = stdout.trim().split('\n').filter(p => p.trim());
+      const cliProfiles = stdout.trim().split('\n').map(p => p.trim()).filter(p => p);
       cliProfiles.forEach(profile => profiles.add(profile));
     } catch (error) {
       console.log('Unable to list profiles via AWS CLI, using file-based detection');
     }
 
-    return Array.from(profiles).sort();
+    // Ensure all names are trimmed and deduplicated
+    const normalizedProfiles = Array.from(profiles).map(p => p.trim());
+    // Remove accidental duplicates after normalization
+    return Array.from(new Set(normalizedProfiles)).sort();
   } catch (error) {
     console.error('Error getting available profiles:', error);
     return ['default'];
