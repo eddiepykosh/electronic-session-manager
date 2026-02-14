@@ -112,6 +112,12 @@ export default class ProfileManager {
    */
   async loadAvailableProfiles() {
     try {
+      // Ensure electronAPI is available before making calls
+      if (!window.electronAPI) {
+        console.warn('ProfileManager: electronAPI is not available');
+        return;
+      }
+
       // Get available profiles from AWS configuration
       const profiles = await window.electronAPI.getAvailableProfiles();
       const profileSelect = document.getElementById('profile-select');
@@ -141,6 +147,12 @@ export default class ProfileManager {
    */
   async loadCurrentProfileInfo() {
     try {
+      // Ensure electronAPI is available before making calls
+      if (!window.electronAPI) {
+        console.warn('ProfileManager: electronAPI is not available');
+        return;
+      }
+
       // Get current profile information from AWS
       const profileInfo = await window.electronAPI.getCurrentProfileInfo();
       this.updateProfileStatus(profileInfo);
@@ -436,23 +448,43 @@ export default class ProfileManager {
       profileItem.classList.add('current');
     }
 
-    // Create profile item HTML
-    profileItem.innerHTML = `
-      <div class="profile-info">
-        <div class="profile-name">${profileName}</div>
-        <div class="profile-type">${profileName === 'default' ? 'Default' : 'Custom'}</div>
-        <span class="profile-status-badge unknown">Unknown</span>
-      </div>
-      <div class="profile-actions">
-        <button class="btn-test-profile">Test</button>
-        <button class="btn-delete-profile" ${profileName === 'default' ? 'disabled' : ''}>Delete</button>
-      </div>
-    `;
-
-    // Set up event listeners for profile actions
-    const statusBadge = profileItem.querySelector('.profile-status-badge');
-    profileItem.querySelector('.btn-test-profile').addEventListener('click', () => this.testProfile(profileName, statusBadge));
-    profileItem.querySelector('.btn-delete-profile').addEventListener('click', () => this.deleteProfile(profileName, profileItem));
+    const info = document.createElement('div');
+    info.className = 'profile-info';
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'profile-name';
+    nameDiv.textContent = profileName;
+    info.appendChild(nameDiv);
+    
+    const typeDiv = document.createElement('div');
+    typeDiv.className = 'profile-type';
+    typeDiv.textContent = profileName === 'default' ? 'Default' : 'Custom';
+    info.appendChild(typeDiv);
+    
+    const statusBadge = document.createElement('span');
+    statusBadge.className = 'profile-status-badge unknown';
+    statusBadge.textContent = 'Unknown';
+    info.appendChild(statusBadge);
+    
+    profileItem.appendChild(info);
+    
+    const actions = document.createElement('div');
+    actions.className = 'profile-actions';
+    
+    const testBtn = document.createElement('button');
+    testBtn.className = 'btn-test-profile';
+    testBtn.textContent = 'Test';
+    testBtn.addEventListener('click', () => this.testProfile(profileName, statusBadge));
+    actions.appendChild(testBtn);
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete-profile';
+    deleteBtn.textContent = 'Delete';
+    if (profileName === 'default') deleteBtn.disabled = true;
+    deleteBtn.addEventListener('click', () => this.deleteProfile(profileName, profileItem));
+    actions.appendChild(deleteBtn);
+    
+    profileItem.appendChild(actions);
 
     // Automatically test the profile
     this.testProfile(profileName, statusBadge);
@@ -547,40 +579,67 @@ export default class ProfileManager {
   createSSOProfileItem(ssoProfile) {
     const ssoProfileItem = document.createElement('div');
     ssoProfileItem.className = 'sso-profile-item';
-    const statusText = ssoProfile.authenticated ? 'Authenticated' : 'Not authenticated';
-    const statusClass = ssoProfile.authenticated ? 'authenticated' : 'not-authenticated';
     
-    // Create SSO profile item HTML
-    ssoProfileItem.innerHTML = `
-      <div class="sso-profile-info">
-        <div class="sso-profile-name">${ssoProfile.profileName}</div>
-        <div class="sso-profile-status">
-          ${statusText} <span class="sso-login-status ${statusClass}">${ssoProfile.authenticated ? '✓' : '✗'}</span>
-          ${ssoProfile.accountId ? `<br><small>Account: ${ssoProfile.accountId}</small>` : ''}
-        </div>
-      </div>
-      <div class="sso-profile-actions">
-        ${ssoProfile.authenticated 
-          ? `<button class="btn-sso-logout">Logout</button>`
-          : `<button class="btn-sso-login">Login</button>`
-        }
-      </div>
-    `;
-
-    // Set up event listeners for SSO actions
-    if (ssoProfile.authenticated) {
-      ssoProfileItem.querySelector('.btn-sso-logout').addEventListener('click', () => this.logoutSSOProfile(ssoProfile.profileName));
-    } else {
-      ssoProfileItem.querySelector('.btn-sso-login').addEventListener('click', (e) => {
-        const loginBtn = e.target;
-        loginBtn.innerHTML = '<span class="sso-login-loading"></span>Logging in...';
-        loginBtn.disabled = true;
-        this.loginSSOProfile(ssoProfile.profileName).finally(() => {
-            loginBtn.textContent = 'Login';
-            loginBtn.disabled = false;
-        });
-      });
+    const info = document.createElement('div');
+    info.className = 'sso-profile-info';
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'sso-profile-name';
+    nameDiv.textContent = ssoProfile.profileName;
+    info.appendChild(nameDiv);
+    
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'sso-profile-status';
+    
+    const statusText = document.createTextNode(ssoProfile.authenticated ? 'Authenticated ' : 'Not authenticated ');
+    statusDiv.appendChild(statusText);
+    
+    const statusSpan = document.createElement('span');
+    statusSpan.className = `sso-login-status ${ssoProfile.authenticated ? 'authenticated' : 'not-authenticated'}`;
+    statusSpan.textContent = ssoProfile.authenticated ? '✓' : '✗';
+    statusDiv.appendChild(statusSpan);
+    
+    if (ssoProfile.accountId) {
+        statusDiv.appendChild(document.createElement('br'));
+        const small = document.createElement('small');
+        small.textContent = `Account: ${ssoProfile.accountId}`;
+        statusDiv.appendChild(small);
     }
+    
+    info.appendChild(statusDiv);
+    ssoProfileItem.appendChild(info);
+    
+    const actions = document.createElement('div');
+    actions.className = 'sso-profile-actions';
+    
+    if (ssoProfile.authenticated) {
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'btn-sso-logout';
+        logoutBtn.textContent = 'Logout';
+        logoutBtn.addEventListener('click', () => this.logoutSSOProfile(ssoProfile.profileName));
+        actions.appendChild(logoutBtn);
+    } else {
+        const loginBtn = document.createElement('button');
+        loginBtn.className = 'btn-sso-login';
+        loginBtn.textContent = 'Login';
+        loginBtn.addEventListener('click', (e) => {
+            const btn = e.target;
+            btn.innerHTML = ''; // Clear text
+            const loadingSpan = document.createElement('span');
+            loadingSpan.className = 'sso-login-loading';
+            btn.appendChild(loadingSpan);
+            btn.appendChild(document.createTextNode('Logging in...'));
+            btn.disabled = true;
+            
+            this.loginSSOProfile(ssoProfile.profileName).finally(() => {
+                btn.textContent = 'Login';
+                btn.disabled = false;
+            });
+        });
+        actions.appendChild(loginBtn);
+    }
+    
+    ssoProfileItem.appendChild(actions);
 
     return ssoProfileItem;
   }

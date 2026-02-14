@@ -74,11 +74,31 @@ jest.mock('electron', () => ({
 
 // Mock child_process for testing CLI commands
 // This enables testing AWS CLI operations without requiring actual CLI execution
-jest.mock('child_process', () => ({
-  exec: jest.fn(), // Mock synchronous command execution
-  spawn: jest.fn(), // Mock asynchronous command execution
-  execSync: jest.fn() // Mock synchronous command execution with return value
-}));
+jest.mock('child_process', () => {
+  const { promisify } = require('util');
+  const execFn = jest.fn();
+  const execFileFn = jest.fn();
+  // Custom promisify so promisify(execFile) returns { stdout, stderr } like the real execFile
+  execFileFn[promisify.custom] = (...args) => {
+    return new Promise((resolve, reject) => {
+      execFileFn(...args, (err, stdout, stderr) => {
+        if (err) {
+          err.stdout = stdout;
+          err.stderr = stderr;
+          reject(err);
+        } else {
+          resolve({ stdout, stderr });
+        }
+      });
+    });
+  };
+  return {
+    exec: execFn,
+    execFile: execFileFn,
+    spawn: jest.fn(),
+    execSync: jest.fn()
+  };
+});
 
 // Mock fs module for file operations
 // This allows testing file operations without touching the actual filesystem

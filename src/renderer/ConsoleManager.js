@@ -149,8 +149,17 @@ export default class ConsoleManager {
     const entry = document.createElement('div');
     entry.className = `console-entry ${logLevel}`;
     
-    // Set the HTML content with escaped message for security
-    entry.innerHTML = `<span class="timestamp">[${timestamp}] ${level}</span> <span class="message">${this.uiManager.escapeHtml(message)}</span>`;
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'timestamp';
+    timeSpan.textContent = `[${timestamp}] ${level}`;
+    entry.appendChild(timeSpan);
+    
+    entry.appendChild(document.createTextNode(' '));
+
+    const messageSpan = document.createElement('span');
+    messageSpan.className = 'message';
+    messageSpan.textContent = message;
+    entry.appendChild(messageSpan);
 
     // Add entry to console output
     consoleOutput.appendChild(entry);

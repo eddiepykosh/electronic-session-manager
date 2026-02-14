@@ -45,13 +45,15 @@
  * - Node.js util: For promisification
  */
 
-const { exec } = require('child_process');
+const { exec, execFile, spawn } = require('child_process');
 const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs').promises;
+const os = require('os');
 
 // Promisify exec for async/await usage
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // Define AWS configuration file paths
 const credentialsPath = path.join(process.env.HOME || process.env.USERPROFILE, '.aws', 'credentials');
@@ -59,19 +61,67 @@ const configPath = path.join(process.env.HOME || process.env.USERPROFILE, '.aws'
 
 // Track AWS CLI availability status
 let awsCliAvailable = false;
+let awsExecutablePath = null;
 
 /**
- * Checks if AWS CLI is installed and available in PATH
+ * Finds the AWS CLI executable path
+ * @returns {Promise<string>} Path to AWS executable
+ * @throws {Error} If AWS CLI is not found
+ */
+async function getAWSExecutablePath() {
+  if (awsExecutablePath) return awsExecutablePath;
+
+  const isWin = os.platform() === 'win32';
+  const cmd = isWin ? 'where' : 'which';
+  
+  try {
+    const { stdout } = await execFileAsync(cmd, ['aws']);
+    const paths = stdout.split(/\r?\n/).filter(Boolean);
+    if (paths.length > 0) {
+      awsExecutablePath = paths[0].trim();
+      return awsExecutablePath;
+    }
+  } catch (error) {
+    // Fallback to standard paths if which/where fails
+    const standardPaths = isWin 
+      ? [
+          'C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe',
+          'C:\\Program Files\\Amazon\\AWSCLI\\bin\\aws.exe',
+          path.join(process.env.USERPROFILE, 'AppData\\Local\\Amazon\\AWSCLIV2\\aws.exe')
+        ]
+      : [
+          '/usr/local/bin/aws',
+          '/usr/bin/aws',
+          '/opt/homebrew/bin/aws'
+        ];
+
+    for (const p of standardPaths) {
+      try {
+        await fs.access(p);
+        awsExecutablePath = p;
+        return p;
+      } catch (e) {
+        // Path doesn't exist, continue
+      }
+    }
+  }
+
+  throw new Error('AWS CLI not found. Please ensure it is installed and in your PATH.');
+}
+
+/**
+ * Checks if AWS CLI is installed and available
  * @returns {Promise<boolean>} True if AWS CLI is available, false otherwise
  */
 async function checkAWSCLI() {
   try {
-    await execAsync('aws --version');
-    console.log('AWS CLI is available');
+    const awsPath = await getAWSExecutablePath();
+    await execFileAsync(awsPath, ['--version']);
+    console.log('AWS CLI is available at:', awsPath);
     awsCliAvailable = true;
     return true;
   } catch (error) {
-    console.error('AWS CLI is not installed or not in PATH');
+    console.error('AWS CLI is not installed or not in PATH', error);
     awsCliAvailable = false;
     return false;
   }
@@ -91,26 +141,34 @@ async function ensureAWSCLI() {
 }
 
 /**
- * Builds AWS CLI command with proper profile and region parameters
- * @param {string} baseCommand - Base AWS CLI command
+ * Executes an AWS command securely using execFile
+ * @param {string[]} args - Array of command arguments
  * @param {string} profile - AWS profile name
- * @returns {Promise<string>} Complete AWS CLI command
+ * @param {Object} options - Additional options for execFile
+ * @returns {Promise<{stdout: string, stderr: string}>} Command output
  */
-async function buildAWSCommand(baseCommand, profile) {
-  let command = baseCommand;
-  
-  // Add region if not already present in command
-  if (!command.includes('--region') && !command.includes('--region=')) {
-    const region = await getProfileRegion(profile || 'default');
-    command = `${command} --region ${region}`;
-  }
-  
-  // Add profile if specified and not default
-  if (profile && profile !== 'default') {
-    command = `${command} --profile ${profile}`;
-  }
-  
-  return command;
+async function execAWSCommand(args, profile, options = {}) {
+    await ensureAWSCLI();
+    const awsPath = await getAWSExecutablePath();
+    
+    const finalArgs = [...args];
+    
+    // Check if region is already in args
+    const hasRegion = finalArgs.includes('--region');
+    
+    if (!hasRegion) {
+        const region = await getProfileRegion(profile || 'default');
+        finalArgs.push('--region', region);
+    }
+    
+    if (profile && profile !== 'default') {
+        const hasProfile = finalArgs.includes('--profile');
+        if (!hasProfile) {
+            finalArgs.push('--profile', profile);
+        }
+    }
+
+    return execFileAsync(awsPath, finalArgs, { ...options, encoding: 'utf8' });
 }
 
 /**
@@ -316,11 +374,12 @@ async function isSSOProfile(profileName) {
 // Export all utility functions
 module.exports = {
   execAsync,
+  execAWSCommand,
+  getAWSExecutablePath,
   credentialsPath,
   configPath,
   checkAWSCLI,
   ensureAWSCLI,
-  buildAWSCommand,
   appendToCredentialsFile,
   appendToConfigFile,
   profileExistsInFiles,

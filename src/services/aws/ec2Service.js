@@ -45,9 +45,8 @@
  */
 
 const {
-  execAsync,
   ensureAWSCLI,
-  buildAWSCommand,
+  execAWSCommand,
 } = require('./common');
 
 /**
@@ -65,8 +64,7 @@ async function getInstances(profile) {
     await ensureAWSCLI();
     
     // Build and execute AWS CLI command for EC2 instances
-    const command = await buildAWSCommand('aws ec2 describe-instances --output json', profile);
-    const { stdout } = await execAsync(command);
+    const { stdout } = await execAWSCommand(['ec2', 'describe-instances', '--output', 'json'], profile);
     const data = JSON.parse(stdout);
     
     // Parse and format instance data
@@ -110,8 +108,7 @@ async function startInstance(instanceId, profile) {
     await ensureAWSCLI();
     
     // Build and execute AWS CLI command to start instance
-    const command = await buildAWSCommand(`aws ec2 start-instances --instance-ids ${instanceId} --output json`, profile);
-    const { stdout } = await execAsync(command);
+    const { stdout } = await execAWSCommand(['ec2', 'start-instances', '--instance-ids', instanceId, '--output', 'json'], profile);
     const data = JSON.parse(stdout);
     
     // Check if start operation was successful
@@ -145,8 +142,7 @@ async function stopInstance(instanceId, profile) {
     await ensureAWSCLI();
     
     // Build and execute AWS CLI command to stop instance
-    const command = await buildAWSCommand(`aws ec2 stop-instances --instance-ids ${instanceId} --output json`, profile);
-    const { stdout } = await execAsync(command);
+    const { stdout } = await execAWSCommand(['ec2', 'stop-instances', '--instance-ids', instanceId, '--output', 'json'], profile);
     const data = JSON.parse(stdout);
     
     // Check if stop operation was successful

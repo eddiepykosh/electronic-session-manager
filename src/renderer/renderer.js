@@ -181,9 +181,30 @@ class ElectronicSessionManager {
 
 // ===== APPLICATION INITIALIZATION =====
 
-// Create the main application instance
-const app = new ElectronicSessionManager();
+/**
+ * Initialize the application once the DOM is ready.
+ * Since this script is loaded as type="module" (deferred), the DOM may already
+ * be parsed by the time execution begins. We check document.readyState to handle
+ * both cases: if still loading, we wait for DOMContentLoaded; otherwise we
+ * initialize immediately.
+ */
+function initializeApp() {
+  try {
+    // Create the main application instance
+    const app = new ElectronicSessionManager();
 
-// Expose the application instance to the global window object
-// This allows HTML onclick handlers to access the application methods
-window.app = app;
+    // Expose the application instance to the global window object
+    // This allows HTML onclick handlers to access the application methods
+    window.app = app;
+  } catch (error) {
+    console.error('Failed to initialize Electronic Session Manager:', error);
+  }
+}
+
+if (document.readyState === 'loading') {
+  // DOM is still loading — wait for it to be ready
+  document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+  // DOM is already parsed (module scripts are deferred) — initialize immediately
+  initializeApp();
+}

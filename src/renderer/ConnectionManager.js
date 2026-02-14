@@ -158,26 +158,75 @@ export default class ConnectionManager {
     // Create custom port forwarding dialog
     const customPortDialog = document.createElement('div');
     customPortDialog.className = 'custom-port-dialog';
-    customPortDialog.innerHTML = `
-      <div class="custom-port-content">
-        <h3>Custom Port Forwarding</h3>
-        <p>Enter the ports for port forwarding:</p>
-        <div class="port-inputs">
-          <div class="port-input-group">
-            <label for="local-port">Local Port:</label>
-            <input type="number" id="local-port" placeholder="e.g., 8080" min="1024" max="65535" value="8080">
-          </div>
-          <div class="port-input-group">
-            <label for="remote-port">Remote Port:</label>
-            <input type="number" id="remote-port" placeholder="e.g., 80" min="1" max="65535" value="80">
-          </div>
-        </div>
-        <div class="dialog-buttons">
-          <button class="btn-secondary" onclick="app.closeCustomPortDialog()">Cancel</button>
-          <button class="btn-primary" onclick="app.startCustomPortForwarding('${instanceId}')">Start Connection</button>
-        </div>
-      </div>
-    `;
+    
+    const content = document.createElement('div');
+    content.className = 'custom-port-content';
+    
+    const h3 = document.createElement('h3');
+    h3.textContent = 'Custom Port Forwarding';
+    content.appendChild(h3);
+    
+    const p = document.createElement('p');
+    p.textContent = 'Enter the ports for port forwarding:';
+    content.appendChild(p);
+    
+    const portInputs = document.createElement('div');
+    portInputs.className = 'port-inputs';
+    
+    // Local Port
+    const localGroup = document.createElement('div');
+    localGroup.className = 'port-input-group';
+    const localLabel = document.createElement('label');
+    localLabel.htmlFor = 'local-port';
+    localLabel.textContent = 'Local Port:';
+    const localInput = document.createElement('input');
+    localInput.type = 'number';
+    localInput.id = 'local-port';
+    localInput.placeholder = 'e.g., 8080';
+    localInput.min = '1024';
+    localInput.max = '65535';
+    localInput.value = '8080';
+    localGroup.appendChild(localLabel);
+    localGroup.appendChild(localInput);
+    portInputs.appendChild(localGroup);
+    
+    // Remote Port
+    const remoteGroup = document.createElement('div');
+    remoteGroup.className = 'port-input-group';
+    const remoteLabel = document.createElement('label');
+    remoteLabel.htmlFor = 'remote-port';
+    remoteLabel.textContent = 'Remote Port:';
+    const remoteInput = document.createElement('input');
+    remoteInput.type = 'number';
+    remoteInput.id = 'remote-port';
+    remoteInput.placeholder = 'e.g., 80';
+    remoteInput.min = '1';
+    remoteInput.max = '65535';
+    remoteInput.value = '80';
+    remoteGroup.appendChild(remoteLabel);
+    remoteGroup.appendChild(remoteInput);
+    portInputs.appendChild(remoteGroup);
+    
+    content.appendChild(portInputs);
+    
+    // Buttons
+    const buttons = document.createElement('div');
+    buttons.className = 'dialog-buttons';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-secondary';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => this.uiManager.closeCustomPortDialog());
+    buttons.appendChild(cancelBtn);
+    
+    const startBtn = document.createElement('button');
+    startBtn.className = 'btn-primary';
+    startBtn.textContent = 'Start Connection';
+    startBtn.addEventListener('click', () => this.startCustomPortForwarding(instanceId));
+    buttons.appendChild(startBtn);
+    
+    content.appendChild(buttons);
+    customPortDialog.appendChild(content);
     
     // Add dialog to DOM and show it
     document.body.appendChild(customPortDialog);
@@ -185,8 +234,8 @@ export default class ConnectionManager {
     // Add the active class to make the dialog visible with animation
     setTimeout(() => {
       customPortDialog.classList.add('active');
-      const localPortInput = document.getElementById('local-port');
-      if (localPortInput) localPortInput.focus();
+      const localInput = document.getElementById('local-port');
+      if (localInput) localInput.focus();
     }, 100);
   }
 
@@ -343,21 +392,77 @@ export default class ConnectionManager {
   }
 
   /**
-   * Generates HTML for port forwarding action buttons
+   * Renders port forwarding action buttons into a container element
    * Creates stop buttons for all active sessions for a specific instance
+   * @param {HTMLElement} container - The container to append buttons to
    * @param {string} instanceId - EC2 instance ID
-   * @returns {string} HTML string of action buttons
    */
-  getPortForwardingActions(instanceId) {
+  renderPortForwardingActions(container, instanceId) {
     // Show stop buttons for all sessions for this instance
-    let actions = '';
     for (const [key, session] of this.activeSessions.entries()) {
       if (session.instanceId === instanceId) {
-        actions += `
-          <button class="btn-action btn-stop" onclick="app.stopPortForwarding('${instanceId}', '${session.localPort}', '${session.remotePort}')">⏹️ Stop Port Forwarding (${session.localPort}→${session.remotePort})</button>
-        `;
+        const button = document.createElement('button');
+        button.className = 'btn-action btn-stop';
+        button.textContent = `⏹️ Stop Port Forwarding (${session.localPort}→${session.remotePort})`;
+        button.onclick = () => this.stopPortForwarding(instanceId, session.localPort, session.remotePort);
+        container.appendChild(button);
       }
     }
-    return actions;
   }
-} 
+
+  /**
+   * Stops port forwarding for a specific session
+   * Terminate the process and update the UI
+   * @param {string} instanceId - EC2 instance ID
+   * @param {number} localPort - Local port number
+   * @param {number} remotePort - Remote port number
+   * @returns {Promise<Object>} Stop operation result
+   */
+  async stopPortForwarding(instanceId, localPort, remotePort) {
+    const key = this.getSessionKey(instanceId, localPort, remotePort);
+    const session = this.activeSessions.get(key);
+    
+    if (!session) {
+      this.uiManager.showError('Session not found');
+      return;
+    }
+
+    this.statusBarManager.updateStatusBar({ 
+      appStatus: 'busy',
+      appStatusText: 'Stopping session...'
+    });
+    
+    try {
+      // Stop the port forwarding session
+      const result = await window.electronAPI.stopPortForwarding(instanceId, session.sessionId);
+      if (result && result.success) {
+        // Remove session from tracking and update UI
+        this.activeSessions.delete(key);
+        this.statusBarManager.updateStatusBar({ 
+          appStatus: 'ready',
+          appStatusText: 'Ready',
+          activeSessions: this.activeSessions.size
+        });
+        
+        // Refresh instance details if possible
+        const instanceManager = window.app?.instanceManager;
+        if (instanceManager) {
+            instanceManager.refreshInstanceDetails(instanceId);
+        }
+        
+        return result;
+      } else {
+        throw new Error('Stop operation returned failure');
+      }
+    } catch (error) {
+      // Handle stop operation failure
+      this.statusBarManager.updateStatusBar({ 
+        appStatus: 'error',
+        appStatusText: 'Error'
+      });
+      const errorMessage = error.message || 'Failed to stop port forwarding';
+      this.consoleManager.addConsoleEntry('ERROR', `Error stopping port forwarding: ${errorMessage}`, 'error');
+      this.uiManager.showError(errorMessage);
+    }
+  }
+}

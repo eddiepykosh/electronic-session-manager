@@ -151,50 +151,88 @@ export default class InstanceManager {
   }
 
   /**
+   * Helper to create DOM elements
+   */
+  createElement(tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text) el.textContent = text;
+    return el;
+  }
+
+  /**
    * Displays the list of EC2 instances in the sidebar
-   * Creates HTML for each instance with status and action buttons
+   * Creates DOM elements for each instance with status and action buttons
    * @param {Array} instances - Array of EC2 instance objects
    */
   displayInstances(instances) {
     const instanceList = document.getElementById('instance-list');
+    instanceList.innerHTML = '';
     
     if (!instances || instances.length === 0) {
-      instanceList.innerHTML = '<p class="no-instances">No instances found</p>';
+      instanceList.appendChild(this.createElement('p', 'no-instances', 'No instances found'));
       return;
     }
 
-    const instancesHtml = instances.map(instance => {
+    instances.forEach(instance => {
       const statusClass = instance.state?.toLowerCase() || 'unknown';
       const statusIcon = this.getStatusIcon(instance.state);
       
       const nameTag = instance.tags?.find(tag => tag.Key === 'Name');
       const instanceName = nameTag?.Value || instance.id;
       
-      return `
-        <div class="instance-item" data-instance-id="${instance.id}">
-          <div class="instance-header">
-            <span class="instance-name">${instanceName}</span>
-            <span class="instance-status ${statusClass}">
-              ${statusIcon} ${instance.state || 'Unknown'}
-            </span>
-          </div>
-          <div class="instance-details">
-            <div class="instance-info">
-              <span class="instance-type">${instance.type || 'Unknown'}</span>
-              <span class="instance-zone">${instance.availabilityZone || 'Unknown'}</span>
-            </div>
-            <div class="instance-actions">
-              ${this.getActionButtons(instance)}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
+      const item = this.createElement('div', 'instance-item');
+      item.dataset.instanceId = instance.id;
+      
+      const header = this.createElement('div', 'instance-header');
+      header.appendChild(this.createElement('span', 'instance-name', instanceName));
+      
+      const statusSpan = this.createElement('span', `instance-status ${statusClass}`, `${statusIcon} ${instance.state || 'Unknown'}`);
+      header.appendChild(statusSpan);
+      item.appendChild(header);
+      
+      const details = this.createElement('div', 'instance-details');
+      const info = this.createElement('div', 'instance-info');
+      info.appendChild(this.createElement('span', 'instance-type', instance.type || 'Unknown'));
+      info.appendChild(this.createElement('span', 'instance-zone', instance.availabilityZone || 'Unknown'));
+      details.appendChild(info);
+      
+      const actions = this.createElement('div', 'instance-actions');
+      this.appendActionButtons(actions, instance);
+      details.appendChild(actions);
+      
+      item.appendChild(details);
+      instanceList.appendChild(item);
+    });
 
-    instanceList.innerHTML = instancesHtml;
-    
     this.setupInstanceClickHandlers();
   }
+
+  /**
+   * Appends action buttons to a container based on instance state
+   * @param {HTMLElement} container - The container to append buttons to
+   * @param {Object} instance - EC2 instance object
+   */
+  appendActionButtons(container, instance) {
+    const status = instance.state?.toLowerCase();
+    
+    if (status === 'running') {
+      const stopBtn = this.createElement('button', 'btn-action', '⏹️ Stop');
+      stopBtn.onclick = (e) => {
+        e.stopPropagation(); // prevent item click handler
+        this.stopInstance(instance.id);
+      };
+      container.appendChild(stopBtn);
+    } else if (status === 'stopped') {
+      const startBtn = this.createElement('button', 'btn-action', '▶️ Start');
+      startBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.startInstance(instance.id);
+      };
+      container.appendChild(startBtn);
+    }
+  }
+
 
   /**
    * Returns the appropriate status icon for an instance state
@@ -283,64 +321,123 @@ export default class InstanceManager {
       console.error('Instance not found:', instanceId);
       return;
     }
-
+    
+    const detailsPanel = document.getElementById('instance-details');
+    if (!detailsPanel) return;
+    
+    detailsPanel.innerHTML = '';
+    
     const nameTag = instance.tags?.find(tag => tag.Key === 'Name');
     const instanceName = nameTag?.Value || instance.id;
     const launchTime = instance.launchTime ? new Date(instance.launchTime).toLocaleString() : 'N/A';
     const statusIcon = this.getStatusIcon(instance.state);
-
-    const detailsHtml = `
-      <div class="instance-details-panel">
-        <div class="instance-details-header">
-          <h2>${instanceName}</h2>
-          <span class="instance-id">${instance.id}</span>
-        </div>
-        <div class="instance-details-content">
-          <div class="detail-section">
-            <h3>Actions</h3>
-            <div class="action-buttons">
-              ${this.getDetailsActionButtons(instance)}
-              ${this.connectionManager.getPortForwardingActions(instance.id)}
-            </div>
-          </div>
-          <div class="detail-section">
-            <h3>Status & Configuration</h3>
-            <div class="detail-grid">
-              <div class="detail-item"><span class="detail-label">Status:</span><span class="detail-value status-${instance.state?.toLowerCase()}">${statusIcon} ${instance.state || 'Unknown'}</span></div>
-              <div class="detail-item"><span class="detail-label">Instance Type:</span><span class="detail-value">${instance.type || 'Unknown'}</span></div>
-              <div class="detail-item"><span class="detail-label">Platform:</span><span class="detail-value">${instance.platform || 'linux'}</span></div>
-              <div class="detail-item"><span class="detail-label">Launch Time:</span><span class="detail-value">${launchTime}</span></div>
-            </div>
-          </div>
-          <div class="detail-section">
-            <h3>Network Information</h3>
-            <div class="detail-grid">
-              <div class="detail-item"><span class="detail-label">Public IP:</span><span class="detail-value">${instance.publicIp || 'N/A'}</span></div>
-              <div class="detail-item"><span class="detail-label">Private IP:</span><span class="detail-value">${instance.privateIp || 'N/A'}</span></div>
-              <div class="detail-item"><span class="detail-label">Availability Zone:</span><span class="detail-value">${instance.availabilityZone || 'Unknown'}</span></div>
-              <div class="detail-item"><span class="detail-label">VPC ID:</span><span class="detail-value">${instance.vpcId || 'N/A'}</span></div>
-              <div class="detail-item"><span class="detail-label">Subnet ID:</span><span class="detail-value">${instance.subnetId || 'N/A'}</span></div>
-            </div>
-          </div>
-          ${instance.tags && instance.tags.length > 0 ? `
-          <div class="detail-section">
-            <h3>Tags</h3>
-            <div class="tags-container">
-              ${instance.tags.map(tag => `<div class="tag-item"><span class="tag-key">${tag.Key}:</span><span class="tag-value">${tag.Value}</span></div>`).join('')}
-            </div>
-          </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
-
-    const detailsPanel = document.getElementById('instance-details');
-    if (detailsPanel) {
-      detailsPanel.innerHTML = detailsHtml;
+    
+    const header = this.createElement('div', 'instance-details-header');
+    header.appendChild(this.createElement('h2', null, instanceName));
+    header.appendChild(this.createElement('span', 'instance-id', instance.id));
+    detailsPanel.appendChild(header);
+    
+    const content = this.createElement('div', 'instance-details-content');
+    
+    // Actions Section
+    const actionsSection = this.createElement('div', 'detail-section');
+    actionsSection.appendChild(this.createElement('h3', null, 'Actions'));
+    const actionButtons = this.createElement('div', 'action-buttons');
+    this.appendDetailsActionButtons(actionButtons, instance);
+    this.connectionManager.renderPortForwardingActions(actionButtons, instance.id);
+    actionsSection.appendChild(actionButtons);
+    content.appendChild(actionsSection);
+    
+    // Status Section
+    const statusSection = this.createElement('div', 'detail-section');
+    statusSection.appendChild(this.createElement('h3', null, 'Status & Configuration'));
+    const statusGrid = this.createElement('div', 'detail-grid');
+    
+    this.addDetailItem(statusGrid, 'Status:', `${statusIcon} ${instance.state || 'Unknown'}`, `status-${instance.state?.toLowerCase()}`);
+    this.addDetailItem(statusGrid, 'Instance Type:', instance.type || 'Unknown');
+    this.addDetailItem(statusGrid, 'Platform:', instance.platform || 'linux');
+    this.addDetailItem(statusGrid, 'Launch Time:', launchTime);
+    
+    statusSection.appendChild(statusGrid);
+    content.appendChild(statusSection);
+    
+    // Network Section
+    const networkSection = this.createElement('div', 'detail-section');
+    networkSection.appendChild(this.createElement('h3', null, 'Network Information'));
+    const networkGrid = this.createElement('div', 'detail-grid');
+    
+    this.addDetailItem(networkGrid, 'Public IP:', instance.publicIp || 'N/A');
+    this.addDetailItem(networkGrid, 'Private IP:', instance.privateIp || 'N/A');
+    this.addDetailItem(networkGrid, 'Availability Zone:', instance.availabilityZone || 'Unknown');
+    this.addDetailItem(networkGrid, 'VPC ID:', instance.vpcId || 'N/A');
+    this.addDetailItem(networkGrid, 'Subnet ID:', instance.subnetId || 'N/A');
+    
+    networkSection.appendChild(networkGrid);
+    content.appendChild(networkSection);
+    
+    // Tags Section
+    if (instance.tags && instance.tags.length > 0) {
+      const tagsSection = this.createElement('div', 'detail-section');
+      tagsSection.appendChild(this.createElement('h3', null, 'Tags'));
+      const tagsContainer = this.createElement('div', 'tags-container');
+      
+      instance.tags.forEach(tag => {
+        const tagItem = this.createElement('div', 'tag-item');
+        const keySpan = this.createElement('span', 'tag-key', `${tag.Key}:`);
+        const valueSpan = this.createElement('span', 'tag-value', tag.Value);
+        tagItem.appendChild(keySpan);
+        tagItem.appendChild(valueSpan);
+        tagsContainer.appendChild(tagItem);
+      });
+      
+      tagsSection.appendChild(tagsContainer);
+      content.appendChild(tagsSection);
     }
+    
+    detailsPanel.appendChild(content);
 
     this.consoleManager.addConsoleEntry('System', `Displaying details for instance: ${instanceName} (${instanceId})`, 'info');
   }
+
+  addDetailItem(container, label, value, valueClass) {
+    const item = this.createElement('div', 'detail-item');
+    item.appendChild(this.createElement('span', 'detail-label', label));
+    const valSpan = this.createElement('span', `detail-value ${valueClass || ''}`, value);
+    item.appendChild(valSpan);
+    container.appendChild(item);
+  }
+
+  /**
+   * Appends detailed action buttons to container
+   */
+  appendDetailsActionButtons(container, instance) {
+    const status = instance.state?.toLowerCase();
+    
+    if (status === 'running') {
+      const stopBtn = this.createElement('button', 'btn-action', '⏹️ Stop');
+      stopBtn.onclick = () => this.stopInstance(instance.id);
+      container.appendChild(stopBtn);
+      
+      const rdpBtn = this.createElement('button', 'btn-action btn-connect', '🖥️ Connect via RDP');
+      rdpBtn.onclick = () => this.connectionManager.connectViaRDP(instance.id);
+      container.appendChild(rdpBtn);
+      
+      const sshBtn = this.createElement('button', 'btn-action btn-connect', '💻 Connect via SSH');
+      sshBtn.onclick = () => this.connectionManager.connectViaSSH(instance.id);
+      container.appendChild(sshBtn);
+      
+      const customBtn = this.createElement('button', 'btn-action btn-connect', '🔧 Connect using Custom ports');
+      customBtn.onclick = () => this.connectionManager.connectViaCustom(instance.id);
+      container.appendChild(customBtn);
+      
+    } else if (status === 'stopped') {
+      const startBtn = this.createElement('button', 'btn-action', '▶️ Start');
+      startBtn.onclick = () => this.startInstance(instance.id);
+      container.appendChild(startBtn);
+    }
+  }
+
+
 
   /**
    * Starts an EC2 instance

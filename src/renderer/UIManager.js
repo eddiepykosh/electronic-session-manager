@@ -92,15 +92,33 @@ export default class UIManager {
     // Create notification element with appropriate styling
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
-    notification.innerHTML = `
-        <div class="notification-header">
-            <span class="notification-title">${type === 'success' ? '✅' : '❌'} ${type.charAt(0).toUpperCase() + type.slice(1)}</span>
-            <button class="notification-close-btn">&times;</button>
-        </div>
-        <div class="notification-content">
-            <p>${message}</p>
-        </div>
-    `;
+    
+    const header = document.createElement('div');
+    header.className = 'notification-header';
+    
+    const title = document.createElement('span');
+    title.className = 'notification-title';
+    title.textContent = `${type === 'success' ? '✅' : '❌'} ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+    header.appendChild(title);
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-close-btn';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = () => {
+        clearTimeout(timer);
+        close();
+    };
+    header.appendChild(closeBtn);
+    
+    notification.appendChild(header);
+    
+    const content = document.createElement('div');
+    content.className = 'notification-content';
+    const p = document.createElement('p');
+    p.textContent = message;
+    content.appendChild(p);
+    
+    notification.appendChild(content);
 
     // Add notification to container
     container.appendChild(notification);

@@ -49,6 +49,12 @@ class DarkModeManager {
     // Internal state tracking for current theme mode
     this.isDarkMode = false;
     
+    // Only initialize if the toggle switch element exists in the DOM
+    if (!this.darkModeSwitch) {
+      console.warn('DarkModeManager: dark-mode-switch element not found in DOM');
+      return;
+    }
+
     // Initialize the theme system
     this.init();
   }
@@ -60,6 +66,12 @@ class DarkModeManager {
    * the initial theme to the application.
    */
   init() {
+    // Guard against missing DOM element
+    if (!this.darkModeSwitch) {
+      console.warn('DarkModeManager.init: dark-mode-switch element not found, skipping initialization');
+      return;
+    }
+
     // Load any previously saved theme preference from localStorage
     this.loadDarkModePreference();
     
